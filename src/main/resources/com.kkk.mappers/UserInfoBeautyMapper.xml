@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kkk.mappers.UserInfoBeautyMapper">
+
+	<!--实体映射-->
+	<resultMap id="base_result_map" type="com.kkk.entity.po.UserInfoBeauty">
+		<!--自增ID-->
+		<result column="id" property="id"  />
+		<!--邮箱-->
+		<result column="email" property="email"  />
+		<!--用户ID-->
+		<result column="user_id" property="userId"  />
+		<!--状态0:未使用 1:已使用-->
+		<result column="status" property="status"  />
+	</resultMap>
+
+
+	<!-- 通用查询结果列-->
+	<sql id="base_column_list">
+		 id,email,user_id,status
+	</sql>
+
+	<sql id="base_condition_filed">
+			<if test="query.id != null">
+				 and  id = #{query.id}
+			</if>
+			<if test="query.email != null and query.email!=''">
+				 and  email = #{query.email}
+			</if>
+			<if test="query.userId != null and query.userId!=''">
+				 and  user_id = #{query.userId}
+			</if>
+			<if test="query.status != null">
+				 and  status = #{query.status}
+			</if>
+	</sql>
+	<!-- 通用条件列-->
+	<sql id="base_condition">
+	 <where>
+		 <include refid="base_condition_filed" />
+	 </where>
+	</sql>
+
+	<!-- 通用查询条件列-->
+	<sql id="query_condition">
+	 <where>
+			<include refid="base_condition_filed" />
+			<if test="query.emailFuzzy!= null  and query.emailFuzzy!=''">
+				 and  email like concat('%', #{query.emailFuzzy}, '%')
+			</if>
+			<if test="query.userIdFuzzy!= null  and query.userIdFuzzy!=''">
+				 and  user_id like concat('%', #{query.userIdFuzzy}, '%')
+			</if>
+	 </where>
+	</sql>
+
+	<!-- 查询集合-->
+	<select id="selectList" resultMap="base_result_map" >
+		 SELECT <include refid="base_column_list" /> FROM user_info_beauty <include refid="query_condition" />
+		 <if test="query.orderBy!=null">
+			 order by ${query.orderBy}
+		 </if>
+		 <if test="query.simplePage!=null">
+			 limit #{query.simplePage.start},#{query.simplePage.end}
+		 </if>
+	</select>
+
+	<!-- 查询数量-->
+	<select id="selectCount" resultType="java.lang.Integer" >
+		 SELECT count(1) FROM user_info_beauty <include refid="query_condition" />
+	</select>
+
+	<!-- 插入 （匹配有值的字段）-->
+	<insert id="insert" parameterType="com.kkk.entity.po.UserInfoBeauty">
+		 INSERT INTO user_info_beauty
+		 <trim prefix="(" suffix=")" suffixOverrides="," >
+			<if test="bean.id != null">
+				 id,
+			</if>
+			<if test="bean.email != null">
+				 email,
+			</if>
+			<if test="bean.userId != null">
+				 user_id,
+			</if>
+			<if test="bean.status != null">
+				 status,
+			</if>
+		 </trim>
+		 <trim prefix="values (" suffix=")" suffixOverrides="," >
+			<if test="bean.id!=null">
+				 #{bean.id},
+			</if>
+			<if test="bean.email!=null">
+				 #{bean.email},
+			</if>
+			<if test="bean.userId!=null">
+				 #{bean.userId},
+			</if>
+			<if test="bean.status!=null">
+				 #{bean.status},
+			</if>
+		 </trim>
+	</insert>
+
+	<!-- 插入或者更新 （匹配有值的字段）-->
+	<insert id="insertOrUpdate" parameterType="com.kkk.entity.po.UserInfoBeauty">
+		 INSERT INTO user_info_beauty
+		 <trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="bean.id != null">
+				 id,
+			</if>
+			<if test="bean.email != null">
+				 email,
+			</if>
+			<if test="bean.userId != null">
+				 user_id,
+			</if>
+			<if test="bean.status != null">
+				 status,
+			</if>
+		 </trim>
+		 <trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="bean.id!=null">
+				 #{bean.id},
+			</if>
+			<if test="bean.email!=null">
+				 #{bean.email},
+			</if>
+			<if test="bean.userId!=null">
+				 #{bean.userId},
+			</if>
+			<if test="bean.status!=null">
+				 #{bean.status},
+			</if>
+		 </trim>
+		 on DUPLICATE key update 
+		 <trim prefix="" suffix="" suffixOverrides=",">
+			<if test="bean.id!=null">
+				 id = VALUES(id),
+			</if>
+			<if test="bean.email!=null">
+				 email = VALUES(email),
+			</if>
+			<if test="bean.userId!=null">
+				 user_id = VALUES(user_id),
+			</if>
+			<if test="bean.status!=null">
+				 status = VALUES(status),
+			</if>
+		 </trim>
+	</insert>
+
+	<!-- 添加 （批量插入）-->
+	<insert id="insertBatch" parameterType="com.kkk.entity.po.UserInfoBeauty">
+		 INSERT INTO user_info_beauty(
+			 id,
+			 email,
+			 user_id,
+			 status
+		 )values
+		 <foreach collection="list" item="item" separator=",">
+			 (
+				 #{item.id},
+				 #{item.email},
+				 #{item.userId},
+				 #{item.status}
+			 )
+		 </foreach>
+	</insert>
+
+	<!-- 批量新增修改 （批量插入）-->
+	<insert id="insertOrUpdateBatch" parameterType="com.kkk.entity.po.UserInfoBeauty">
+		 INSERT INTO user_info_beauty(
+			 id,
+			 email,
+			 user_id,
+			 status
+		 )values
+		 <foreach collection="list" item="item" separator=",">
+			 (
+				 #{item.id},
+				 #{item.email},
+				 #{item.userId},
+				 #{item.status}
+			 )
+		 </foreach>
+			on DUPLICATE key update 
+			id = VALUES(id),
+			email = VALUES(email),
+			user_id = VALUES(user_id),
+			status = VALUES(status)
+	</insert>
+
+	<!--多条件修改-->
+	<update id="updateByParam" parameterType="com.kkk.entity.query.UserInfoBeautyQuery">
+		 UPDATE user_info_beauty
+ 		 <set> 
+			<if test="bean.id != null">
+				 id = #{bean.id},
+			</if>
+			<if test="bean.email != null">
+				 email = #{bean.email},
+			</if>
+			<if test="bean.userId != null">
+				 user_id = #{bean.userId},
+			</if>
+			<if test="bean.status != null">
+				 status = #{bean.status},
+			</if>
+ 		 </set>
+ 		 <include refid="query_condition" />
+	</update>
+
+	<!--多条件删除-->
+	<delete id="deleteByParam">
+		 delete from user_info_beauty
+ 		 <include refid="query_condition" />
+	</delete>
+
+	<!-- 根据Id修改-->
+	<update id="updateById" parameterType="com.kkk.entity.po.UserInfoBeauty">
+		 UPDATE user_info_beauty
+ 		 <set> 
+			<if test="bean.email != null">
+				 email = #{bean.email},
+			</if>
+			<if test="bean.userId != null">
+				 user_id = #{bean.userId},
+			</if>
+			<if test="bean.status != null">
+				 status = #{bean.status},
+			</if>
+ 		 </set>
+ 		 where id=#{id}
+	</update>
+
+	<!-- 根据Id删除-->
+	<delete id="deleteById">
+		delete from user_info_beauty where id=#{id}
+	</delete>
+
+	<!-- 根据PrimaryKey获取对象-->
+	<select id="selectById" resultMap="base_result_map" >
+		select <include refid="base_column_list" /> from user_info_beauty where id=#{id}
+	</select>
+
+	<!-- 根据UserId修改-->
+	<update id="updateByUserId" parameterType="com.kkk.entity.po.UserInfoBeauty">
+		 UPDATE user_info_beauty
+ 		 <set> 
+			<if test="bean.id != null">
+				 id = #{bean.id},
+			</if>
+			<if test="bean.email != null">
+				 email = #{bean.email},
+			</if>
+			<if test="bean.status != null">
+				 status = #{bean.status},
+			</if>
+ 		 </set>
+ 		 where user_id=#{userId}
+	</update>
+
+	<!-- 根据UserId删除-->
+	<delete id="deleteByUserId">
+		delete from user_info_beauty where user_id=#{userId}
+	</delete>
+
+	<!-- 根据PrimaryKey获取对象-->
+	<select id="selectByUserId" resultMap="base_result_map" >
+		select <include refid="base_column_list" /> from user_info_beauty where user_id=#{userId}
+	</select>
+
+	<!-- 根据Email修改-->
+	<update id="updateByEmail" parameterType="com.kkk.entity.po.UserInfoBeauty">
+		 UPDATE user_info_beauty
+ 		 <set> 
+			<if test="bean.id != null">
+				 id = #{bean.id},
+			</if>
+			<if test="bean.userId != null">
+				 user_id = #{bean.userId},
+			</if>
+			<if test="bean.status != null">
+				 status = #{bean.status},
+			</if>
+ 		 </set>
+ 		 where email=#{email}
+	</update>
+
+	<!-- 根据Email删除-->
+	<delete id="deleteByEmail">
+		delete from user_info_beauty where email=#{email}
+	</delete>
+
+	<!-- 根据PrimaryKey获取对象-->
+	<select id="selectByEmail" resultMap="base_result_map" >
+		select <include refid="base_column_list" /> from user_info_beauty where email=#{email}
+	</select>
+
+</mapper>

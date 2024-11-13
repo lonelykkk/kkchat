@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kkk.mappers.UserInfoMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.kkk.entity.po.UserInfo">
+        <!--用户ID-->
+        <result column="user_id" property="userId"/>
+        <!--邮箱-->
+        <result column="email" property="email"/>
+        <!--昵称-->
+        <result column="nick_name" property="nickName"/>
+        <!--0:直接加入 1:同意后加好友-->
+        <result column="join_type" property="joinType"/>
+        <!--0:女 1:男-->
+        <result column="sex" property="sex"/>
+        <!--密码-->
+        <result column="password" property="password"/>
+        <!--个性签名-->
+        <result column="personal_signature" property="personalSignature"/>
+        <!--状态-->
+        <result column="status" property="status"/>
+        <!--创建时间-->
+        <result column="create_time" property="createTime"/>
+        <!--最后登录时间-->
+        <result column="last_login_time" property="lastLoginTime"/>
+        <!--省份-->
+        <result column="area_name" property="areaName"/>
+        <!--城市-->
+        <result column="area_code" property="areaCode"/>
+        <!--最后离开时间-->
+        <result column="last_off_time" property="lastOffTime"/>
+    </resultMap>
+
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        user_id
+        ,email,nick_name,join_type,
+		 sex,password,personal_signature,status,create_time,
+		 last_login_time,area_name,area_code,last_off_time
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.userId != null and query.userId!=''">
+            and user_id = #{query.userId}
+        </if>
+        <if test="query.email != null and query.email!=''">
+            and email = #{query.email}
+        </if>
+        <if test="query.nickName != null and query.nickName!=''">
+            and nick_name = #{query.nickName}
+        </if>
+        <if test="query.joinType != null">
+            and join_type = #{query.joinType}
+        </if>
+        <if test="query.sex != null">
+            and sex = #{query.sex}
+        </if>
+        <if test="query.password != null and query.password!=''">
+            and password = #{query.password}
+        </if>
+        <if test="query.personalSignature != null and query.personalSignature!=''">
+            and personal_signature = #{query.personalSignature}
+        </if>
+        <if test="query.status != null">
+            and status = #{query.status}
+        </if>
+        <if test="query.createTime != null and query.createTime!=''">
+            <![CDATA[ and  create_time=str_to_date(#{query.createTime}, '%Y-%m-%d') ]]>
+        </if>
+        <if test="query.lastLoginTime != null and query.lastLoginTime!=''">
+            and last_login_time = #{query.lastLoginTime}
+        </if>
+        <if test="query.areaName != null and query.areaName!=''">
+            and area_name = #{query.areaName}
+        </if>
+        <if test="query.areaCode != null and query.areaCode!=''">
+            and area_code = #{query.areaCode}
+        </if>
+        <if test="query.lastOffTime != null">
+            and last_off_time = #{query.lastOffTime}
+        </if>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.userIdFuzzy!= null  and query.userIdFuzzy!=''">
+                and user_id like concat('%', #{query.userIdFuzzy}, '%')
+            </if>
+            <if test="query.emailFuzzy!= null  and query.emailFuzzy!=''">
+                and email like concat('%', #{query.emailFuzzy}, '%')
+            </if>
+            <if test="query.nickNameFuzzy!= null  and query.nickNameFuzzy!=''">
+                and nick_name like concat('%', #{query.nickNameFuzzy}, '%')
+            </if>
+            <if test="query.passwordFuzzy!= null  and query.passwordFuzzy!=''">
+                and password like concat('%', #{query.passwordFuzzy}, '%')
+            </if>
+            <if test="query.personalSignatureFuzzy!= null  and query.personalSignatureFuzzy!=''">
+                and personal_signature like concat('%', #{query.personalSignatureFuzzy}, '%')
+            </if>
+            <if test="query.createTimeStart!= null and query.createTimeStart!=''">
+                <![CDATA[ and  create_time>=str_to_date(#{query.createTimeStart}, '%Y-%m-%d') ]]>
+            </if>
+            <if test="query.createTimeEnd!= null and query.createTimeEnd!=''">
+                <![CDATA[ and  create_time< date_sub(str_to_date(#{query.createTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+            </if>
+            <if test="query.areaNameFuzzy!= null  and query.areaNameFuzzy!=''">
+                and area_name like concat('%', #{query.areaNameFuzzy}, '%')
+            </if>
+            <if test="query.areaCodeFuzzy!= null  and query.areaCodeFuzzy!=''">
+                and area_code like concat('%', #{query.areaCodeFuzzy}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT
+        <include refid="base_column_list"/>
+        FROM user_info
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM user_info
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.kkk.entity.po.UserInfo">
+        INSERT INTO user_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.userId != null">
+                user_id,
+            </if>
+            <if test="bean.email != null">
+                email,
+            </if>
+            <if test="bean.nickName != null">
+                nick_name,
+            </if>
+            <if test="bean.joinType != null">
+                join_type,
+            </if>
+            <if test="bean.sex != null">
+                sex,
+            </if>
+            <if test="bean.password != null">
+                password,
+            </if>
+            <if test="bean.personalSignature != null">
+                personal_signature,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.lastLoginTime != null">
+                last_login_time,
+            </if>
+            <if test="bean.areaName != null">
+                area_name,
+            </if>
+            <if test="bean.areaCode != null">
+                area_code,
+            </if>
+            <if test="bean.lastOffTime != null">
+                last_off_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.userId!=null">
+                #{bean.userId},
+            </if>
+            <if test="bean.email!=null">
+                #{bean.email},
+            </if>
+            <if test="bean.nickName!=null">
+                #{bean.nickName},
+            </if>
+            <if test="bean.joinType!=null">
+                #{bean.joinType},
+            </if>
+            <if test="bean.sex!=null">
+                #{bean.sex},
+            </if>
+            <if test="bean.password!=null">
+                #{bean.password},
+            </if>
+            <if test="bean.personalSignature!=null">
+                #{bean.personalSignature},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.lastLoginTime!=null">
+                #{bean.lastLoginTime},
+            </if>
+            <if test="bean.areaName!=null">
+                #{bean.areaName},
+            </if>
+            <if test="bean.areaCode!=null">
+                #{bean.areaCode},
+            </if>
+            <if test="bean.lastOffTime!=null">
+                #{bean.lastOffTime},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.kkk.entity.po.UserInfo">
+        INSERT INTO user_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.userId != null">
+                user_id,
+            </if>
+            <if test="bean.email != null">
+                email,
+            </if>
+            <if test="bean.nickName != null">
+                nick_name,
+            </if>
+            <if test="bean.joinType != null">
+                join_type,
+            </if>
+            <if test="bean.sex != null">
+                sex,
+            </if>
+            <if test="bean.password != null">
+                password,
+            </if>
+            <if test="bean.personalSignature != null">
+                personal_signature,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.lastLoginTime != null">
+                last_login_time,
+            </if>
+            <if test="bean.areaName != null">
+                area_name,
+            </if>
+            <if test="bean.areaCode != null">
+                area_code,
+            </if>
+            <if test="bean.lastOffTime != null">
+                last_off_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.userId!=null">
+                #{bean.userId},
+            </if>
+            <if test="bean.email!=null">
+                #{bean.email},
+            </if>
+            <if test="bean.nickName!=null">
+                #{bean.nickName},
+            </if>
+            <if test="bean.joinType!=null">
+                #{bean.joinType},
+            </if>
+            <if test="bean.sex!=null">
+                #{bean.sex},
+            </if>
+            <if test="bean.password!=null">
+                #{bean.password},
+            </if>
+            <if test="bean.personalSignature!=null">
+                #{bean.personalSignature},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.lastLoginTime!=null">
+                #{bean.lastLoginTime},
+            </if>
+            <if test="bean.areaName!=null">
+                #{bean.areaName},
+            </if>
+            <if test="bean.areaCode!=null">
+                #{bean.areaCode},
+            </if>
+            <if test="bean.lastOffTime!=null">
+                #{bean.lastOffTime},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.userId!=null">
+                user_id = VALUES(user_id),
+            </if>
+            <if test="bean.email!=null">
+                email = VALUES(email),
+            </if>
+            <if test="bean.nickName!=null">
+                nick_name = VALUES(nick_name),
+            </if>
+            <if test="bean.joinType!=null">
+                join_type = VALUES(join_type),
+            </if>
+            <if test="bean.sex!=null">
+                sex = VALUES(sex),
+            </if>
+            <if test="bean.password!=null">
+                password = VALUES(password),
+            </if>
+            <if test="bean.personalSignature!=null">
+                personal_signature = VALUES(personal_signature),
+            </if>
+            <if test="bean.status!=null">
+                status = VALUES(status),
+            </if>
+            <if test="bean.createTime!=null">
+                create_time = VALUES(create_time),
+            </if>
+            <if test="bean.lastLoginTime!=null">
+                last_login_time = VALUES(last_login_time),
+            </if>
+            <if test="bean.areaName!=null">
+                area_name = VALUES(area_name),
+            </if>
+            <if test="bean.areaCode!=null">
+                area_code = VALUES(area_code),
+            </if>
+            <if test="bean.lastOffTime!=null">
+                last_off_time = VALUES(last_off_time),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.kkk.entity.po.UserInfo">
+        INSERT INTO user_info(
+        user_id,
+        email,
+        nick_name,
+        join_type,
+        sex,
+        password,
+        personal_signature,
+        status,
+        create_time,
+        last_login_time,
+        area_name,
+        area_code,
+        last_off_time
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId},
+            #{item.email},
+            #{item.nickName},
+            #{item.joinType},
+            #{item.sex},
+            #{item.password},
+            #{item.personalSignature},
+            #{item.status},
+            #{item.createTime},
+            #{item.lastLoginTime},
+            #{item.areaName},
+            #{item.areaCode},
+            #{item.lastOffTime}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.kkk.entity.po.UserInfo">
+        INSERT INTO user_info(
+        user_id,
+        email,
+        nick_name,
+        join_type,
+        sex,
+        password,
+        personal_signature,
+        status,
+        create_time,
+        last_login_time,
+        area_name,
+        area_code,
+        last_off_time
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId},
+            #{item.email},
+            #{item.nickName},
+            #{item.joinType},
+            #{item.sex},
+            #{item.password},
+            #{item.personalSignature},
+            #{item.status},
+            #{item.createTime},
+            #{item.lastLoginTime},
+            #{item.areaName},
+            #{item.areaCode},
+            #{item.lastOffTime}
+            )
+        </foreach>
+        on DUPLICATE key update
+        user_id = VALUES(user_id),
+        email = VALUES(email),
+        nick_name = VALUES(nick_name),
+        join_type = VALUES(join_type),
+        sex = VALUES(sex),
+        password = VALUES(password),
+        personal_signature = VALUES(personal_signature),
+        status = VALUES(status),
+        create_time = VALUES(create_time),
+        last_login_time = VALUES(last_login_time),
+        area_name = VALUES(area_name),
+        area_code = VALUES(area_code),
+        last_off_time = VALUES(last_off_time)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.kkk.entity.query.UserInfoQuery">
+        UPDATE user_info
+        <set>
+            <if test="bean.userId != null">
+                user_id = #{bean.userId},
+            </if>
+            <if test="bean.email != null">
+                email = #{bean.email},
+            </if>
+            <if test="bean.nickName != null">
+                nick_name = #{bean.nickName},
+            </if>
+            <if test="bean.joinType != null">
+                join_type = #{bean.joinType},
+            </if>
+            <if test="bean.sex != null">
+                sex = #{bean.sex},
+            </if>
+            <if test="bean.password != null">
+                password = #{bean.password},
+            </if>
+            <if test="bean.personalSignature != null">
+                personal_signature = #{bean.personalSignature},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.lastLoginTime != null">
+                last_login_time = #{bean.lastLoginTime},
+            </if>
+            <if test="bean.areaName != null">
+                area_name = #{bean.areaName},
+            </if>
+            <if test="bean.areaCode != null">
+                area_code = #{bean.areaCode},
+            </if>
+            <if test="bean.lastOffTime != null">
+                last_off_time = #{bean.lastOffTime},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete from user_info
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据UserId修改-->
+    <update id="updateByUserId" parameterType="com.kkk.entity.po.UserInfo">
+        UPDATE user_info
+        <set>
+            <if test="bean.email != null">
+                email = #{bean.email},
+            </if>
+            <if test="bean.nickName != null">
+                nick_name = #{bean.nickName},
+            </if>
+            <if test="bean.joinType != null">
+                join_type = #{bean.joinType},
+            </if>
+            <if test="bean.sex != null">
+                sex = #{bean.sex},
+            </if>
+            <if test="bean.password != null">
+                password = #{bean.password},
+            </if>
+            <if test="bean.personalSignature != null">
+                personal_signature = #{bean.personalSignature},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.lastLoginTime != null">
+                last_login_time = #{bean.lastLoginTime},
+            </if>
+            <if test="bean.areaName != null">
+                area_name = #{bean.areaName},
+            </if>
+            <if test="bean.areaCode != null">
+                area_code = #{bean.areaCode},
+            </if>
+            <if test="bean.lastOffTime != null">
+                last_off_time = #{bean.lastOffTime},
+            </if>
+        </set>
+        where user_id=#{userId}
+    </update>
+
+    <!-- 根据UserId删除-->
+    <delete id="deleteByUserId">
+        delete
+        from user_info
+        where user_id = #{userId}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByUserId" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from user_info where user_id=#{userId}
+    </select>
+
+    <!-- 根据Email修改-->
+    <update id="updateByEmail" parameterType="com.kkk.entity.po.UserInfo">
+        UPDATE user_info
+        <set>
+            <if test="bean.userId != null">
+                user_id = #{bean.userId},
+            </if>
+            <if test="bean.nickName != null">
+                nick_name = #{bean.nickName},
+            </if>
+            <if test="bean.joinType != null">
+                join_type = #{bean.joinType},
+            </if>
+            <if test="bean.sex != null">
+                sex = #{bean.sex},
+            </if>
+            <if test="bean.password != null">
+                password = #{bean.password},
+            </if>
+            <if test="bean.personalSignature != null">
+                personal_signature = #{bean.personalSignature},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.lastLoginTime != null">
+                last_login_time = #{bean.lastLoginTime},
+            </if>
+            <if test="bean.areaName != null">
+                area_name = #{bean.areaName},
+            </if>
+            <if test="bean.areaCode != null">
+                area_code = #{bean.areaCode},
+            </if>
+            <if test="bean.lastOffTime != null">
+                last_off_time = #{bean.lastOffTime},
+            </if>
+        </set>
+        where email=#{email}
+    </update>
+
+    <!-- 根据Email删除-->
+    <delete id="deleteByEmail">
+        delete
+        from user_info
+        where email = #{email}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByEmail" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from user_info where email=#{email}
+    </select>
+
+</mapper>
