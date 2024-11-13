@@ -439,6 +439,25 @@
         area_code = VALUES(area_code),
         last_off_time = VALUES(last_off_time)
     </insert>
+    <insert id="insertUser">
+        INSERT INTO user_info (
+            user_id,
+            nick_name,
+            email,
+            password,
+            create_time,
+            status,
+            last_off_time
+        ) VALUES (
+                     #{userId},
+                     #{nickName},
+                     #{email},
+                     #{password},
+                     #{createTime},
+                     #{status},
+                     #{lastOffTime}
+                 )
+    </insert>
 
     <!--多条件修改-->
     <update id="updateByParam" parameterType="com.kkk.entity.query.UserInfoQuery">
@@ -607,6 +626,11 @@
         select
         <include refid="base_column_list"/>
         from user_info where email=#{email}
+    </select>
+    <select id="selectEmail" resultType="com.kkk.entity.po.UserInfo">
+        select *
+            from user_info
+            where email = #{email}
     </select>
 
 </mapper>

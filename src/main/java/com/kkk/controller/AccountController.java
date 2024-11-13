@@ -1,7 +1,9 @@
 package com.kkk.controller;
 
 import com.kkk.entity.constants.Constants;
+import com.kkk.entity.dto.TokenUserInfoDto;
 import com.kkk.entity.vo.ResponseVO;
+import com.kkk.entity.vo.UserInfoVO;
 import com.kkk.exception.BusinessException;
 import com.kkk.redis.RedisUtils;
 import com.kkk.service.UserInfoService;
@@ -44,6 +46,15 @@ public class AccountController extends ABaseController{
         return getSuccessResponseVO(mp);
     }
 
+    /**
+     * 用户注册
+     * @param checkCodeKey
+     * @param email
+     * @param password
+     * @param nickName
+     * @param checkCode
+     * @return
+     */
     @RequestMapping(value = "/register")
     public ResponseVO register(@NotEmpty String checkCodeKey,
                                @NotEmpty @Email String email,
@@ -58,6 +69,22 @@ public class AccountController extends ABaseController{
             userInfoService.register(email, nickName, password);
             return getSuccessResponseVO(null);
         }finally {
+            redisUtils.delete(Constants.REDIS_KEY_CHECK_CODE + checkCodeKey);
+        }
+    }
+
+    @RequestMapping(value = "/login")
+    public ResponseVO login(@NotEmpty String checkCodeKey,
+                            @NotEmpty @Email String email,
+                            @NotEmpty String password,
+                            @NotEmpty String checkCode) {
+        try {
+            if (!checkCode.equalsIgnoreCase((String) redisUtils.get(Constants.REDIS_KEY_CHECK_CODE + checkCodeKey))) {
+                throw new BusinessException("图片验证码不正确");
+            }
+            TokenUserInfoDto userInfoVO = userInfoService.login(email, password);
+            return getSuccessResponseVO(userInfoVO);
+        } finally {
             redisUtils.delete(Constants.REDIS_KEY_CHECK_CODE + checkCodeKey);
         }
     }

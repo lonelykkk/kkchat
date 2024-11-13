@@ -1,5 +1,6 @@
 package com.kkk.service;
 
+import com.kkk.entity.dto.TokenUserInfoDto;
 import com.kkk.entity.po.UserInfo;
 import com.kkk.entity.query.UserInfoQuery;
 import com.kkk.entity.vo.PaginationResultVO;
@@ -92,7 +93,7 @@ public interface UserInfoService {
 
     void register(String email, String nickName, String password);
 
-    UserInfoVO login(String email, String password);
+    TokenUserInfoDto login(String email, String password);
 
     void updateUserInfo(UserInfo userInfo, MultipartFile avatarFile, MultipartFile avatarCover) throws IOException;
 

@@ -16,8 +16,10 @@ import com.kkk.exception.BusinessException;
 import com.kkk.mappers.UserInfoBeautyMapper;
 import com.kkk.mappers.UserInfoMapper;
 import com.kkk.service.UserInfoService;
+import com.kkk.utils.CopyTools;
 import com.kkk.utils.StringTools;
 import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,10 +38,11 @@ import java.util.stream.Collectors;
 @Service("userInfoService")
 public class UserInfoServiceImpl implements UserInfoService {
 
-    @Resource
+    @Autowired
     private UserInfoMapper<UserInfo, UserInfoQuery> userInfoMapper;
-
-    @Resource
+    @Autowired
+    private UserInfoBeautyMapper<UserInfoBeauty, UserInfoBeautyQuery> userInfoBeautyMapper;
+    @Autowired
     private AppConfig appConfig;
 
     /*@Resource
@@ -60,9 +63,6 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Resource
     private UserContactService userContactService;*/
-
-    @Resource
-    private UserInfoBeautyMapper<UserInfoBeauty, UserInfoBeautyQuery> userInfoBeautyMapper;
 
     /**
      * 根据条件查询列表
@@ -192,23 +192,55 @@ public class UserInfoServiceImpl implements UserInfoService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    //@Transactional(rollbackFor = Exception.class)
     public void register(String email, String nickName, String password) {
-        final UserInfo userInfo = this.userInfoMapper.selectByEmail(email);
-        if (userInfo != null) {
-            throw new BusinessException("邮箱已存在");
+        UserInfo userInfo = userInfoMapper.selectByEmail(email);
+        if (null != userInfo) {
+            throw new BusinessException("邮箱账号已经存在");
         }
-        final UserInfo user = new UserInfo();
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setNickName(nickName);
-        user.setCreateTime(new Date());
-        this.userInfoMapper.insert(user);
+        Date curDate = new Date();
+        String userId = StringTools.getUserId();
+
+        //查询邮箱是否需要设置靓号
+        UserInfoBeauty beautyAccount = this.userInfoBeautyMapper.selectByEmail(email);
+        Boolean useBeautyAccount = null != beautyAccount && BeautyAccountStatusEnum.NO_USE.getStatus().equals(beautyAccount.getStatus());
+        if (useBeautyAccount) {
+            userId = UserContactTypeEnum.USER.getPrefix() + beautyAccount.getUserId();
+        }
+        userInfo = new UserInfo();
+        userInfo.setUserId(userId);
+        userInfo.setNickName(nickName);
+        userInfo.setEmail(email);
+        userInfo.setPassword(StringTools.encodeByMD5(password));
+        userInfo.setCreateTime(curDate);
+        userInfo.setStatus(UserStatusEnum.ENABLE.getStatus());
+        userInfo.setLastOffTime(curDate.getTime());
+        userInfoMapper.insert(userInfo);
+        //更新靓号状态
+        if (useBeautyAccount) {
+            UserInfoBeauty updateBeauty = new UserInfoBeauty();
+            updateBeauty.setStatus(BeautyAccountStatusEnum.USEED.getStatus());
+            this.userInfoBeautyMapper.updateById(updateBeauty, beautyAccount.getId());
+        }
+        //创建机器人好友
+        //userContactService.addContact4Robot(userId);
     }
 
     @Override
-    public UserInfoVO login(String email, String password) {
-        return null;
+    public TokenUserInfoDto login(String email, String password) {
+        UserInfo userInfo = this.userInfoMapper.selectByEmail(email);
+        if (null == userInfo || !userInfo.getPassword().equals(password)) {
+            throw new BusinessException("账号或者密码错误");
+        }
+        if (UserStatusEnum.DISABLE.getStatus().equals(userInfo.getStatus())) {
+            throw new BusinessException("账号已禁用");
+        }
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(userInfo);
+
+        /*UserInfoVO userInfoVO = CopyTools.copy(userInfo, UserInfoVO.class);
+        userInfoVO.setToken(tokenUserInfoDto.getToken());
+        userInfoVO.setAdmin(tokenUserInfoDto.getAdmin());*/
+        return tokenUserInfoDto;
     }
 
     private TokenUserInfoDto getTokenUserInfoDto(UserInfo userInfo) {

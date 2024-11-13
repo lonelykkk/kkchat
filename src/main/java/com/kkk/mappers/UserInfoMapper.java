@@ -1,5 +1,6 @@
 package com.kkk.mappers;
 
+import com.kkk.entity.po.UserInfo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -45,4 +46,7 @@ public interface UserInfoMapper<T,P> extends BaseMapper<T,P> {
 	 T selectByEmail(@Param("email") String email);
 
 
+	UserInfo selectEmail(String email);
+
+	void insertUser(T userInfo);
 }
