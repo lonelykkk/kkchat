@@ -5,10 +5,12 @@ import com.kkk.entity.dto.TokenUserInfoDto;
 import com.kkk.entity.vo.ResponseVO;
 import com.kkk.entity.vo.UserInfoVO;
 import com.kkk.exception.BusinessException;
+import com.kkk.redis.RedisComponent;
 import com.kkk.redis.RedisUtils;
 import com.kkk.service.UserInfoService;
 import com.wf.captcha.ArithmeticCaptcha;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,11 +29,19 @@ import java.util.UUID;
 @RestController("accountController")
 @RequestMapping("/account")
 @Validated
-public class AccountController extends ABaseController{
+public class AccountController extends ABaseController {
     @Resource
     private RedisUtils redisUtils;
     @Resource
     private UserInfoService userInfoService;
+    @Resource
+    private RedisComponent redisComponent;
+
+    /**
+     * 获取图形验证码
+     *
+     * @return
+     */
     @RequestMapping("checkCode")
     public ResponseVO checkCode() {
         final ArithmeticCaptcha captcha = new ArithmeticCaptcha(100, 42);
@@ -48,6 +58,7 @@ public class AccountController extends ABaseController{
 
     /**
      * 用户注册
+     *
      * @param checkCodeKey
      * @param email
      * @param password
@@ -68,11 +79,20 @@ public class AccountController extends ABaseController{
             }
             userInfoService.register(email, nickName, password);
             return getSuccessResponseVO(null);
-        }finally {
+        } finally {
             redisUtils.delete(Constants.REDIS_KEY_CHECK_CODE + checkCodeKey);
         }
     }
 
+    /**
+     * 登录
+     *
+     * @param checkCodeKey
+     * @param email
+     * @param password
+     * @param checkCode
+     * @return
+     */
     @RequestMapping(value = "/login")
     public ResponseVO login(@NotEmpty String checkCodeKey,
                             @NotEmpty @Email String email,
@@ -82,10 +102,15 @@ public class AccountController extends ABaseController{
             if (!checkCode.equalsIgnoreCase((String) redisUtils.get(Constants.REDIS_KEY_CHECK_CODE + checkCodeKey))) {
                 throw new BusinessException("图片验证码不正确");
             }
-            TokenUserInfoDto userInfoVO = userInfoService.login(email, password);
+            UserInfoVO userInfoVO = userInfoService.login(email, password);
             return getSuccessResponseVO(userInfoVO);
         } finally {
             redisUtils.delete(Constants.REDIS_KEY_CHECK_CODE + checkCodeKey);
         }
+    }
+
+    @GetMapping("/getSysSetting")
+    public ResponseVO login() {
+        return getSuccessResponseVO(redisComponent.getSysSetting());
     }
 }

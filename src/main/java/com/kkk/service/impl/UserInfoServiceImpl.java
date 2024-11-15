@@ -15,6 +15,7 @@ import com.kkk.entity.vo.UserInfoVO;
 import com.kkk.exception.BusinessException;
 import com.kkk.mappers.UserInfoBeautyMapper;
 import com.kkk.mappers.UserInfoMapper;
+import com.kkk.redis.RedisComponent;
 import com.kkk.service.UserInfoService;
 import com.kkk.utils.CopyTools;
 import com.kkk.utils.StringTools;
@@ -44,6 +45,8 @@ public class UserInfoServiceImpl implements UserInfoService {
     private UserInfoBeautyMapper<UserInfoBeauty, UserInfoBeautyQuery> userInfoBeautyMapper;
     @Autowired
     private AppConfig appConfig;
+    @Resource
+    private RedisComponent redisComponent;
 
     /*@Resource
     private GroupInfoMapper<GroupInfo, GroupInfoQuery> groupInfoMapper;
@@ -192,7 +195,7 @@ public class UserInfoServiceImpl implements UserInfoService {
     }
 
     @Override
-    //@Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void register(String email, String nickName, String password) {
         UserInfo userInfo = userInfoMapper.selectByEmail(email);
         if (null != userInfo) {
@@ -227,7 +230,7 @@ public class UserInfoServiceImpl implements UserInfoService {
     }
 
     @Override
-    public TokenUserInfoDto login(String email, String password) {
+    public UserInfoVO login(String email, String password) {
         UserInfo userInfo = this.userInfoMapper.selectByEmail(email);
         if (null == userInfo || !userInfo.getPassword().equals(password)) {
             throw new BusinessException("账号或者密码错误");
@@ -235,12 +238,24 @@ public class UserInfoServiceImpl implements UserInfoService {
         if (UserStatusEnum.DISABLE.getStatus().equals(userInfo.getStatus())) {
             throw new BusinessException("账号已禁用");
         }
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(userInfo);
 
-        /*UserInfoVO userInfoVO = CopyTools.copy(userInfo, UserInfoVO.class);
+
+        //TODO 获取联系人列表
+        //TODO 获取群组
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(userInfo);
+        final Long lastHeartBeat = redisComponent.getUserHeartBeat(userInfo.getUserId());
+        if (lastHeartBeat != null) {
+            throw new BusinessException("账号在别处登录，请退出后再登录");
+        }
+
+        //保存登录信息到redis中
+        String token = StringTools.encodeByMD5(tokenUserInfoDto.getUserId() + StringTools.getRandomString(Constants.LENGTH_20));
+        tokenUserInfoDto.setToken(token);
+        redisComponent.saveTokenUserInfoDto(tokenUserInfoDto);
+        UserInfoVO userInfoVO = CopyTools.copy(userInfo, UserInfoVO.class);
         userInfoVO.setToken(tokenUserInfoDto.getToken());
-        userInfoVO.setAdmin(tokenUserInfoDto.getAdmin());*/
-        return tokenUserInfoDto;
+        userInfoVO.setAdmin(tokenUserInfoDto.getAdmin());
+        return userInfoVO;
     }
 
     private TokenUserInfoDto getTokenUserInfoDto(UserInfo userInfo) {

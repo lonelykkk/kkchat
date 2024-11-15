@@ -93,7 +93,7 @@ public interface UserInfoService {
 
     void register(String email, String nickName, String password);
 
-    TokenUserInfoDto login(String email, String password);
+    UserInfoVO login(String email, String password);
 
     void updateUserInfo(UserInfo userInfo, MultipartFile avatarFile, MultipartFile avatarCover) throws IOException;
 
