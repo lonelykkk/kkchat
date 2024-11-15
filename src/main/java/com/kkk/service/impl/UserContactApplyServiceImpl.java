@@ -180,7 +180,80 @@ public class UserContactApplyServiceImpl implements UserContactApplyService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer applyAdd(TokenUserInfoDto tokenUserInfoDto, String contactId, String contactType, String applyInfo) {
-        return null;
+        //获取添加类型(加群还是加好友)
+        UserContactTypeEnum typeEnum = UserContactTypeEnum.getByPrefix(contactId);
+        if (typeEnum == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        //申请人id
+        final String applyUserId = tokenUserInfoDto.getUserId();
+        //默认申请信息
+        applyInfo = StringTools.isEmpty(applyInfo) ? String.format(Constants.APPLY_INFO_TEMPLATE, tokenUserInfoDto.getNickName()) : applyInfo;
+        Long curDate = System.currentTimeMillis();
+        Integer joinType = null;
+        //被添加人id
+        String receiveUserId = contactId;
+        //查询对方好友是否已经添加，如果已经拉黑无法添加
+        UserContact userContact = userContactMapper.selectByUserIdAndContactId(applyUserId, contactId);
+        if (userContact != null &&
+                ArraysUtil.contains(new Integer[]{
+                        UserContactStatusEnum.BLACKLIST_BE.getStatus(),
+                        UserContactStatusEnum.BLACKLIST_BE_FIRST.getStatus()
+                }, userContact.getStatus())) {
+            throw new BusinessException("对方已经你拉黑，无法添加");
+        }
+        //如果添加类型为群组
+        if (UserContactTypeEnum.GROUP == typeEnum) {
+            GroupInfo groupInfo = groupInfoMapper.selectByGroupId(contactId);
+            if (groupInfo == null||GroupStatusEnum.DISSOLUTION.getStatus().equals(groupInfo.getStatus())) {
+                throw new BusinessException("群聊不存在或已解散");
+            }
+            //获取群主id
+            receiveUserId = groupInfo.getGroupOwnerId();
+            //获取添加类型（是否需要验证通过）
+            joinType = groupInfo.getJoinType();
+        }else {
+            UserInfo userInfo = userInfoMapper.selectByUserId(contactId);
+            if (userInfo == null) {
+                throw new BusinessException(ResponseCodeEnum.CODE_600);
+            }
+            joinType = userInfo.getJoinType();
+        }
+        //直接加入不用记录申请记录
+        if (JoinTypeEnum.JOIN.getType().equals(joinType)) {
+            this.userContactService.addContact(applyUserId, receiveUserId, contactId, typeEnum.getType(), applyInfo);
+            return joinType;
+        }
+        //记录申请记录
+        UserContactApply dbApply = this.userContactApplyMapper.selectByApplyUserIdAndReceiveUserIdAndContactId(applyUserId, receiveUserId, contactId);
+        if (dbApply == null) {
+            UserContactApply contactApply = new UserContactApply();
+            contactApply.setApplyUserId(applyUserId);
+            contactApply.setContactType(typeEnum.getType());
+            contactApply.setReceiveUserId(receiveUserId);
+            contactApply.setLastApplyTime(curDate);
+            contactApply.setContactId(contactId);
+            contactApply.setStatus(UserContactApplyStatusEnum.INIT.ordinal());
+            contactApply.setApplyInfo(applyInfo);
+            this.userContactApplyMapper.insert(contactApply);
+        } else {
+            //更新状态
+            UserContactApply contactApply = new UserContactApply();
+            contactApply.setStatus(UserContactApplyStatusEnum.INIT.getStatus());
+            contactApply.setLastApplyTime(curDate);
+            contactApply.setApplyInfo(applyInfo);
+            this.userContactApplyMapper.updateByApplyId(contactApply, dbApply.getApplyId());
+        }
+        if (dbApply == null || !UserContactApplyStatusEnum.INIT.getStatus().equals(dbApply.getStatus())) {
+            //如果是待处理状态就不发消息，避免重复发送
+            //发送ws消息
+            MessageSendDto messageSend = new MessageSendDto();
+            messageSend.setMessageType(MessageTypeEnum.CONTACT_APPLY.getType());
+            messageSend.setMessageContent(applyInfo);
+            messageSend.setContactId(receiveUserId);
+            //messageHandler.sendMessage(messageSend);
+        }
+        return joinType;
     }
 
     @Override

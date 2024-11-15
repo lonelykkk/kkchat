@@ -147,7 +147,38 @@ public class UserContactServiceImpl implements UserContactService {
 
     @Override
     public UserContactSearchResultDto searchContact(String userId, String contactId) {
-        return null;
+        UserContactTypeEnum typeEnum = UserContactTypeEnum.getByPrefix(contactId);
+        if (typeEnum == null) {
+            return null;
+        }
+        UserContactSearchResultDto resultDto = new UserContactSearchResultDto();
+        switch (typeEnum) {
+            case USER:
+                UserInfo userInfo = userInfoMapper.selectByUserId(contactId);
+                if (userInfo == null) {
+                    return null;
+                }
+                resultDto = CopyTools.copy(userInfo, UserContactSearchResultDto.class);
+                break;
+            case GROUP:
+                GroupInfo groupInfo = groupInfoMapper.selectByGroupId(contactId);
+                if (null == groupInfo) {
+                    return null;
+                }
+                resultDto.setNickName(groupInfo.getGroupName());
+                break;
+        }
+        resultDto.setContactType(typeEnum.toString());
+        resultDto.setContactId(contactId);
+
+        if (userId.equals(contactId)) {
+            resultDto.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+            return resultDto;
+        }
+        //查询是否为好友
+        UserContact userContact = this.userContactMapper.selectByUserIdAndContactId(userId, contactId);
+        resultDto.setStatus(userContact == null ? null : userContact.getStatus());
+        return resultDto;
     }
 
     @Override
