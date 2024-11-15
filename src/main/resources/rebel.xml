@@ -6,10 +6,10 @@
 -->
 <application generated-by="intellij" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.zeroturnaround.com" xsi:schemaLocation="http://www.zeroturnaround.com http://update.zeroturnaround.com/jrebel/rebel-2_3.xsd">
 
-	<id>easychat-java</id>
+	<id>kkk-java</id>
 
 	<classpath>
-		<dir name="E:/workspace-java/easychat-java/target/classes">
+		<dir name="E:/workspace-java/kkk-java/target/classes">
 		</dir>
 	</classpath>
 

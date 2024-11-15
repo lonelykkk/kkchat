@@ -15,7 +15,7 @@ spring:
     resources:
       add-mappings: false
   datasource:
-    url: jdbc:mysql://localhost:3306/easychat?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
+    url: jdbc:mysql://localhost:3306/kkk?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
     username: root
     password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -55,7 +55,7 @@ spring:
 mybatis-plus:
   mapper-locations: classpath*:/mappers/*.xml
 project:
-  folder: D:/Develop/Project/Log/easychat/
+  folder: D:/Develop/Project/Log/kkk/
 log:
   root:
     level: debug

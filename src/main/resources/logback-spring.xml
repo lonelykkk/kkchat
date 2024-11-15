@@ -10,7 +10,7 @@
     <springProperty scope="context" name="log.root.level" source="log.root.level"/>
 
     <property name="LOG_FOLDER" value="logs"/>
-    <property name="LOG_FILE_NAME" value="easychat.log"/>
+    <property name="LOG_FILE_NAME" value="kkk.log"/>
 
     <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${log.path}/${LOG_FOLDER}/${LOG_FILE_NAME}</file>

@@ -5,6 +5,7 @@ import com.kkk.entity.dto.TokenUserInfoDto;
 import com.kkk.entity.enums.ResponseCodeEnum;
 import com.kkk.entity.vo.ResponseVO;
 import com.kkk.exception.BusinessException;
+import com.kkk.redis.RedisUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -18,6 +19,9 @@ public class ABaseController {
     protected static final String STATUC_SUCCESS = "success";
 
     protected static final String STATUC_ERROR = "error";
+
+    @Resource
+    private RedisUtils redisUtils;
 
 
 
@@ -53,7 +57,9 @@ public class ABaseController {
     }
 
     protected TokenUserInfoDto getTokenUserInfo(HttpServletRequest request) {
-        return null;
+        final String token = request.getHeader(COOKIE_KEY_TOKEN);
+        TokenUserInfoDto tokenUserInfoDto = (TokenUserInfoDto) redisUtils.get(Constants.REDIS_KEY_WS_TOKEN + token);
+        return tokenUserInfoDto;
     }
 
     protected void resetTokenUserInfo(HttpServletRequest request, TokenUserInfoDto tokenUserInfoDto) {

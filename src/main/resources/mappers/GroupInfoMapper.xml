@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kkk.mappers.GroupInfoMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.kkk.entity.po.GroupInfo">
+        <!--群ID-->
+        <result column="group_id" property="groupId"/>
+        <!--群组名-->
+        <result column="group_name" property="groupName"/>
+        <!--群主id-->
+        <result column="group_owner_id" property="groupOwnerId"/>
+        <!--创建时间-->
+        <result column="create_time" property="createTime"/>
+        <!--群公告-->
+        <result column="group_notice" property="groupNotice"/>
+        <!--0:直接加入 1:管理员同意后加入-->
+        <result column="join_type" property="joinType"/>
+        <!--状态 1:正常 0:解散-->
+        <result column="status" property="status"/>
+    </resultMap>
+
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        group_id
+        ,group_name,group_owner_id,create_time,group_notice,
+		 join_type,status
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.groupId != null and query.groupId!=''">
+            and group_id = #{query.groupId}
+        </if>
+        <if test="query.groupName != null and query.groupName!=''">
+            and group_name = #{query.groupName}
+        </if>
+        <if test="query.groupOwnerId != null and query.groupOwnerId!=''">
+            and group_owner_id = #{query.groupOwnerId}
+        </if>
+        <if test="query.createTime != null and query.createTime!=''">
+            <![CDATA[ and  create_time=str_to_date(#{query.createTime}, '%Y-%m-%d') ]]>
+        </if>
+        <if test="query.groupNotice != null and query.groupNotice!=''">
+            and group_notice = #{query.groupNotice}
+        </if>
+        <if test="query.joinType != null">
+            and join_type = #{query.joinType}
+        </if>
+        <if test="query.status != null">
+            and status = #{query.status}
+        </if>
+    </sql>
+    <!-- 通用条件列-->
+    <sql id="base_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+        </where>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.groupIdFuzzy!= null  and query.groupIdFuzzy!=''">
+                and group_id like concat('%', #{query.groupIdFuzzy}, '%')
+            </if>
+            <if test="query.groupNameFuzzy!= null  and query.groupNameFuzzy!=''">
+                and group_name like concat('%', #{query.groupNameFuzzy}, '%')
+            </if>
+            <if test="query.groupOwnerIdFuzzy!= null  and query.groupOwnerIdFuzzy!=''">
+                and group_owner_id like concat('%', #{query.groupOwnerIdFuzzy}, '%')
+            </if>
+            <if test="query.createTimeStart!= null and query.createTimeStart!=''">
+                <![CDATA[ and  create_time>=str_to_date(#{query.createTimeStart}, '%Y-%m-%d') ]]>
+            </if>
+            <if test="query.createTimeEnd!= null and query.createTimeEnd!=''">
+                <![CDATA[ and  create_time< date_sub(str_to_date(#{query.createTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+            </if>
+            <if test="query.groupNoticeFuzzy!= null  and query.groupNoticeFuzzy!=''">
+                and group_notice like concat('%', #{query.groupNoticeFuzzy}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT
+        <include refid="base_column_list"/>
+        <if test="query.queryGroupOwnerName">
+            ,(select nick_name from user_info u where u.user_id = g.group_owner_id) groupOwnerNickName
+        </if>
+        <if test="query.queryMemberCount">
+            ,(select count(1) from user_contact uc where uc.contact_id = g.group_id and uc.contact_type = 1) memberCount
+        </if>
+        FROM group_info g
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM group_info
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.kkk.entity.po.GroupInfo">
+        INSERT INTO group_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.groupId != null">
+                group_id,
+            </if>
+            <if test="bean.groupName != null">
+                group_name,
+            </if>
+            <if test="bean.groupOwnerId != null">
+                group_owner_id,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.groupNotice != null">
+                group_notice,
+            </if>
+            <if test="bean.joinType != null">
+                join_type,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.groupId!=null">
+                #{bean.groupId},
+            </if>
+            <if test="bean.groupName!=null">
+                #{bean.groupName},
+            </if>
+            <if test="bean.groupOwnerId!=null">
+                #{bean.groupOwnerId},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.groupNotice!=null">
+                #{bean.groupNotice},
+            </if>
+            <if test="bean.joinType!=null">
+                #{bean.joinType},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.kkk.entity.po.GroupInfo">
+        INSERT INTO group_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.groupId != null">
+                group_id,
+            </if>
+            <if test="bean.groupName != null">
+                group_name,
+            </if>
+            <if test="bean.groupOwnerId != null">
+                group_owner_id,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.groupNotice != null">
+                group_notice,
+            </if>
+            <if test="bean.joinType != null">
+                join_type,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.groupId!=null">
+                #{bean.groupId},
+            </if>
+            <if test="bean.groupName!=null">
+                #{bean.groupName},
+            </if>
+            <if test="bean.groupOwnerId!=null">
+                #{bean.groupOwnerId},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.groupNotice!=null">
+                #{bean.groupNotice},
+            </if>
+            <if test="bean.joinType!=null">
+                #{bean.joinType},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.groupId!=null">
+                group_id = VALUES(group_id),
+            </if>
+            <if test="bean.groupName!=null">
+                group_name = VALUES(group_name),
+            </if>
+            <if test="bean.groupOwnerId!=null">
+                group_owner_id = VALUES(group_owner_id),
+            </if>
+            <if test="bean.createTime!=null">
+                create_time = VALUES(create_time),
+            </if>
+            <if test="bean.groupNotice!=null">
+                group_notice = VALUES(group_notice),
+            </if>
+            <if test="bean.joinType!=null">
+                join_type = VALUES(join_type),
+            </if>
+            <if test="bean.status!=null">
+                status = VALUES(status),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.kkk.entity.po.GroupInfo">
+        INSERT INTO group_info(
+        group_id,
+        group_name,
+        group_owner_id,
+        create_time,
+        group_notice,
+        join_type,
+        status
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.groupId},
+            #{item.groupName},
+            #{item.groupOwnerId},
+            #{item.createTime},
+            #{item.groupNotice},
+            #{item.joinType},
+            #{item.status}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.kkk.entity.po.GroupInfo">
+        INSERT INTO group_info(
+        group_id,
+        group_name,
+        group_owner_id,
+        create_time,
+        group_notice,
+        join_type,
+        status
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.groupId},
+            #{item.groupName},
+            #{item.groupOwnerId},
+            #{item.createTime},
+            #{item.groupNotice},
+            #{item.joinType},
+            #{item.status}
+            )
+        </foreach>
+        on DUPLICATE key update
+        group_id = VALUES(group_id),
+        group_name = VALUES(group_name),
+        group_owner_id = VALUES(group_owner_id),
+        create_time = VALUES(create_time),
+        group_notice = VALUES(group_notice),
+        join_type = VALUES(join_type),
+        status = VALUES(status)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.kkk.entity.query.GroupInfoQuery">
+        UPDATE group_info
+        <set>
+            <if test="bean.groupId != null">
+                group_id = #{bean.groupId},
+            </if>
+            <if test="bean.groupName != null">
+                group_name = #{bean.groupName},
+            </if>
+            <if test="bean.groupOwnerId != null">
+                group_owner_id = #{bean.groupOwnerId},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.groupNotice != null">
+                group_notice = #{bean.groupNotice},
+            </if>
+            <if test="bean.joinType != null">
+                join_type = #{bean.joinType},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete from group_info
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据GroupId修改-->
+    <update id="updateByGroupId" parameterType="com.kkk.entity.po.GroupInfo">
+        UPDATE group_info
+        <set>
+            <if test="bean.groupName != null">
+                group_name = #{bean.groupName},
+            </if>
+            <if test="bean.groupOwnerId != null">
+                group_owner_id = #{bean.groupOwnerId},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.groupNotice != null">
+                group_notice = #{bean.groupNotice},
+            </if>
+            <if test="bean.joinType != null">
+                join_type = #{bean.joinType},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+        </set>
+        where group_id=#{groupId}
+    </update>
+
+    <!-- 根据GroupId删除-->
+    <delete id="deleteByGroupId">
+        delete
+        from group_info
+        where group_id = #{groupId}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByGroupId" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from group_info where group_id=#{groupId}
+    </select>
+
+</mapper>

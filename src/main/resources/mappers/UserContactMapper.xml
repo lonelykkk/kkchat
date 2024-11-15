@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kkk.mappers.UserContactMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.kkk.entity.po.UserContact">
+        <!--用户ID-->
+        <result column="user_id" property="userId"/>
+        <!--联系人ID或者群组ID-->
+        <result column="contact_id" property="contactId"/>
+        <!--联系人类型 0:好友 1:群组-->
+        <result column="contact_type" property="contactType"/>
+        <!--创建时间-->
+        <result column="create_time" property="createTime"/>
+        <!--状态 0:非好友 1:好友 2:已删除 3:拉黑-->
+        <result column="status" property="status"/>
+        <!--最后更新时间-->
+        <result column="last_update_time" property="lastUpdateTime"/>
+    </resultMap>
+
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        user_id
+        ,contact_id,contact_type,create_time,status,
+		 last_update_time
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.userId != null and query.userId!=''">
+            and c.user_id = #{query.userId}
+        </if>
+        <if test="query.contactId != null and query.contactId!=''">
+            and contact_id = #{query.contactId}
+        </if>
+        <if test="query.contactType != null">
+            and contact_type = #{query.contactType}
+        </if>
+        <if test="query.createTime != null and query.createTime!=''">
+            <![CDATA[ and  create_time=str_to_date(#{query.createTime}, '%Y-%m-%d') ]]>
+        </if>
+        <if test="query.status != null">
+            and c.status = #{query.status}
+        </if>
+        <if test="query.lastUpdateTime != null and query.lastUpdateTime!=''">
+            <![CDATA[ and  last_update_time=str_to_date(#{query.lastUpdateTime}, '%Y-%m-%d') ]]>
+        </if>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.userIdFuzzy!= null  and query.userIdFuzzy!=''">
+                and c.user_id like concat('%', #{query.userIdFuzzy}, '%')
+            </if>
+            <if test="query.contactIdFuzzy!= null  and query.contactIdFuzzy!=''">
+                and contact_id like concat('%', #{query.contactIdFuzzy}, '%')
+            </if>
+            <if test="query.createTimeStart!= null and query.createTimeStart!=''">
+                <![CDATA[ and  create_time>=str_to_date(#{query.createTimeStart}, '%Y-%m-%d') ]]>
+            </if>
+            <if test="query.createTimeEnd!= null and query.createTimeEnd!=''">
+                <![CDATA[ and  create_time< date_sub(str_to_date(#{query.createTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+            </if>
+            <if test="query.lastUpdateTimeStart!= null and query.lastUpdateTimeStart!=''">
+                <![CDATA[ and  last_update_time>=str_to_date(#{query.lastUpdateTimeStart}, '%Y-%m-%d') ]]>
+            </if>
+            <if test="query.lastUpdateTimeEnd!= null and query.lastUpdateTimeEnd!=''">
+                <![CDATA[ and  last_update_time< date_sub(str_to_date(#{query.lastUpdateTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+            </if>
+            <if test="query.statusArray!=null and query.statusArray.length>0">
+                and c.status in(<foreach collection="query.StatusArray" separator="," item="item">#{item}</foreach>)
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT c.*
+        <if test="query.queryContactUserInfo or query.queryUserInfo">
+            ,u.nick_name contactName,u.sex sex
+        </if>
+        <if test="query.queryGroupInfo">
+            ,g.group_name contactName
+        </if>
+        FROM user_contact c
+        <if test="query.queryContactUserInfo">
+            inner join user_info u on c.contact_id=u.user_id
+        </if>
+        <if test="query.queryUserInfo">
+            inner join user_info u on c.user_id=u.user_id
+        </if>
+        <if test="query.queryGroupInfo">
+            inner join group_info g on c.contact_id=g.group_id
+            <if test="query.excludeMyGroup">
+                and g.group_owner_id!=c.user_id
+            </if>
+        </if>
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM user_contact c
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.kkk.entity.po.UserContact">
+        INSERT INTO user_contact
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.userId != null">
+                user_id,
+            </if>
+            <if test="bean.contactId != null">
+                contact_id,
+            </if>
+            <if test="bean.contactType != null">
+                contact_type,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+            <if test="bean.lastUpdateTime != null">
+                last_update_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.userId!=null">
+                #{bean.userId},
+            </if>
+            <if test="bean.contactId!=null">
+                #{bean.contactId},
+            </if>
+            <if test="bean.contactType!=null">
+                #{bean.contactType},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+            <if test="bean.lastUpdateTime!=null">
+                #{bean.lastUpdateTime},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.kkk.entity.po.UserContact">
+        INSERT INTO user_contact
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.userId != null">
+                user_id,
+            </if>
+            <if test="bean.contactId != null">
+                contact_id,
+            </if>
+            <if test="bean.contactType != null">
+                contact_type,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+            <if test="bean.lastUpdateTime != null">
+                last_update_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.userId!=null">
+                #{bean.userId},
+            </if>
+            <if test="bean.contactId!=null">
+                #{bean.contactId},
+            </if>
+            <if test="bean.contactType!=null">
+                #{bean.contactType},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+            <if test="bean.lastUpdateTime!=null">
+                #{bean.lastUpdateTime},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.status!=null">
+                status = VALUES(status),
+            </if>
+            <if test="bean.lastUpdateTime!=null">
+                last_update_time = VALUES(last_update_time),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.kkk.entity.po.UserContact">
+        INSERT INTO user_contact(
+        user_id,
+        contact_id,
+        contact_type,
+        create_time,
+        status,
+        last_update_time
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId},
+            #{item.contactId},
+            #{item.contactType},
+            #{item.createTime},
+            #{item.status},
+            #{item.lastUpdateTime}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.kkk.entity.po.UserContact">
+        INSERT INTO user_contact(
+        user_id,
+        contact_id,
+        contact_type,
+        create_time,
+        status,
+        last_update_time
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId},
+            #{item.contactId},
+            #{item.contactType},
+            #{item.createTime},
+            #{item.status},
+            #{item.lastUpdateTime}
+            )
+        </foreach>
+        on DUPLICATE key update
+        status = VALUES(status),
+        last_update_time = VALUES(last_update_time)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.kkk.entity.query.UserContactQuery">
+        UPDATE user_contact
+        <set>
+            <if test="bean.userId != null">
+                user_id = #{bean.userId},
+            </if>
+            <if test="bean.contactId != null">
+                contact_id = #{bean.contactId},
+            </if>
+            <if test="bean.contactType != null">
+                contact_type = #{bean.contactType},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+            <if test="bean.lastUpdateTime != null">
+                last_update_time = #{bean.lastUpdateTime},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete from user_contact
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据UserIdAndContactId修改-->
+    <update id="updateByUserIdAndContactId" parameterType="com.kkk.entity.po.UserContact">
+        UPDATE user_contact
+        <set>
+            <if test="bean.contactType != null">
+                contact_type = #{bean.contactType},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+            <if test="bean.lastUpdateTime != null">
+                last_update_time = #{bean.lastUpdateTime},
+            </if>
+        </set>
+        where user_id=#{userId} and contact_id=#{contactId}
+    </update>
+
+    <!-- 根据UserIdAndContactId删除-->
+    <delete id="deleteByUserIdAndContactId">
+        delete
+        from user_contact
+        where user_id = #{userId}
+          and contact_id = #{contactId}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByUserIdAndContactId" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from user_contact where user_id=#{userId} and contact_id=#{contactId}
+    </select>
+
+</mapper>

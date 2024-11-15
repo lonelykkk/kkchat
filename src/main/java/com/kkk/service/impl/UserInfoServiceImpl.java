@@ -55,7 +55,7 @@ public class UserInfoServiceImpl implements UserInfoService {
     private UserContactMapper<UserContact, UserContactQuery> userContactMapper;
 
     @Resource
-    private RedisComponet redisComponet;
+    private RedisComponent redisComponet;
 
 
     @Resource
