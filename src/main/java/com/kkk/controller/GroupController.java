@@ -2,6 +2,8 @@ package com.kkk.controller;
 
 import com.kkk.annotation.GlobalInterceptor;
 import com.kkk.entity.dto.TokenUserInfoDto;
+import com.kkk.entity.po.GroupInfo;
+import com.kkk.entity.query.GroupInfoQuery;
 import com.kkk.entity.vo.ResponseVO;
 import com.kkk.service.GroupInfoService;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,7 +39,24 @@ public class GroupController extends ABaseController {
                                 MultipartFile avatarFile,
                                 MultipartFile avatarCover)  {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo(request);
-
+        GroupInfo groupInfo = new GroupInfo();
+        groupInfo.setGroupId(groupId);
+        groupInfo.setGroupOwnerId(tokenUserInfoDto.getUserId());
+        groupInfo.setGroupName(groupName);
+        groupInfo.setGroupNotice(groupNotice);
+        groupInfo.setJoinType(joinType);
+        this.groupInfoService.saveGroup(groupInfo, avatarFile, avatarCover);
         return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping(value = "/loadMyGroup")
+    @GlobalInterceptor
+    public ResponseVO loadMyGroup(HttpServletRequest request) {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo(request);
+        GroupInfoQuery infoQuery = new GroupInfoQuery();
+        infoQuery.setGroupOwnerId(tokenUserInfoDto.getUserId());
+        infoQuery.setOrderBy("create_time desc");
+        List<GroupInfo> groupInfoList = this.groupInfoService.findListByParam(infoQuery);
+        return getSuccessResponseVO(groupInfoList);
     }
 }

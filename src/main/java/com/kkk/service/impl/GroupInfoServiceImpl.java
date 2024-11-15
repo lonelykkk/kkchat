@@ -166,7 +166,61 @@ public class GroupInfoServiceImpl implements GroupInfoService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void saveGroup(GroupInfo groupInfo, MultipartFile avatarFile, MultipartFile avatarCover) {
+        Date curDate = new Date();
+        if (StringTools.isEmpty(groupInfo.getGroupId())) {
+            GroupInfoQuery groupInfoQuery = new GroupInfoQuery();
+            groupInfoQuery.setGroupOwnerId(groupInfo.getGroupOwnerId());
+            Integer count = groupInfoMapper.selectCount(groupInfoQuery);
+            SysSettingDto sysSetting = redisComponet.getSysSetting();
+            if (count >= sysSetting.getMaxGroupCount()) {
+                throw new BusinessException("最多支持创建" + sysSetting.getMaxGroupCount() + "个群聊");
+            }
+            if (avatarFile == null) {
+                //throw new BusinessException(ResponseCodeEnum.CODE_600);
+            }
+            groupInfo.setCreateTime(curDate);
+            groupInfo.setGroupId(StringTools.getGroupId());
+            groupInfoMapper.insert(groupInfo);
 
+            //将群组添加为联系人
+            UserContact userContact = new UserContact();
+            userContact.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+            userContact.setContactType(UserContactTypeEnum.GROUP.getType());
+            userContact.setContactId(groupInfo.getGroupId());
+            userContact.setUserId(groupInfo.getGroupOwnerId());
+            userContact.setCreateTime(curDate);
+            userContact.setLastUpdateTime(curDate);
+            userContactMapper.insert(userContact);
+
+            //TODO 创建会话
+            //TODO 发送消息
+        } else {
+            final GroupInfo dbInfo = groupInfoMapper.selectByGroupId(groupInfo.getGroupId());
+            if (!dbInfo.getGroupOwnerId().equals(groupInfo.getGroupOwnerId())) {
+                throw new BusinessException(ResponseCodeEnum.CODE_600);
+            }
+            groupInfoMapper.updateByGroupId(groupInfo, groupInfo.getGroupId());
+
+            //TODO 更新相关表冗余信息
+            //TODO 修改群昵称发送ws消息
+            if (avatarCover == null) {
+                return;
+            }
+            String baseFolder = appConfig.getProjectFolder() + Constants.FILE_FOLDER_FILE;
+            File targetFileFolder = new File(baseFolder + Constants.FILE_FOLDER_AVATAR_NAME);
+            if (!targetFileFolder.exists()) {
+                targetFileFolder.mkdirs();
+            }
+            String filePath = targetFileFolder.getPath() + "/" + groupInfo.getGroupId() + Constants.IMAGE_SUFFIX;
+            try {
+                avatarFile.transferTo(new File(filePath));
+                avatarCover.transferTo(new File(filePath + Constants.COVER_IMAGE_SUFFIX));
+            } catch (IOException e) {
+                logger.error("头像上传失败", e);
+                throw new BusinessException("头像上传失败");
+            }
+
+        }
     }
 
     @Override
