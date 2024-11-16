@@ -181,8 +181,53 @@ public class UserContactServiceImpl implements UserContactService {
         return resultDto;
     }
 
+    /**
+     * 添加联系人
+     * @param applyUserId
+     * @param receiveUserId
+     * @param contactId
+     * @param contactType
+     * @param applyInfo
+     */
     @Override
     public void addContact(String applyUserId, String receiveUserId, String contactId, Integer contactType, String applyInfo) {
+        //群聊人数
+        if (UserContactTypeEnum.GROUP.getType().equals(contactType)) {
+            UserContactQuery contactQuery = new UserContactQuery();
+            contactQuery.setContactId(contactId);
+            contactQuery.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+            Integer count = userContactMapper.selectCount(contactQuery);
+            SysSettingDto sysSettingDto = redisComponet.getSysSetting();
+            if (count >= sysSettingDto.getMaxGroupMemberCount()) {
+                throw new BusinessException("成员已满，无法加入");
+            }
+        }
+        Date curDate = new Date();
+        List<UserContact> contactList = new ArrayList<>();
+        //申请人添加对方
+        UserContact userContact = new UserContact();
+        userContact.setUserId(applyUserId);
+        userContact.setContactId(contactId);
+        userContact.setContactType(contactType);
+        userContact.setCreateTime(curDate);
+        userContact.setLastUpdateTime(curDate);
+        userContact.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+        contactList.add(userContact);
+        //如果是申请好友 接收人添加申请人  群组不用添加对方为好友
+        if (UserContactTypeEnum.USER.getType().equals(contactType)) {
+            userContact = new UserContact();
+            userContact.setUserId(receiveUserId);
+            userContact.setContactId(applyUserId);
+            userContact.setContactType(contactType);
+            userContact.setCreateTime(curDate);
+            userContact.setLastUpdateTime(curDate);
+            userContact.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+            contactList.add(userContact);
+        }
+        userContactMapper.insertOrUpdateBatch(contactList);
+        //TODO 如果是好友，接收人也添加申请人为好友 添加缓存
+
+        //TODO 创建会话 发送消息
 
     }
 
