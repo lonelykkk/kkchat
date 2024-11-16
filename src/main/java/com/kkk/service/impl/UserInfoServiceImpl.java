@@ -275,7 +275,29 @@ public class UserInfoServiceImpl implements UserInfoService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateUserInfo(UserInfo userInfo, MultipartFile avatarFile, MultipartFile avatarCover) throws IOException {
-        return;
+        if (avatarFile != null) {
+            String baseFolder = appConfig.getProjectFolder() + Constants.FILE_FOLDER_FILE;
+            File targetFileFolder = new File(baseFolder + Constants.FILE_FOLDER_AVATAR_NAME);
+            if (!targetFileFolder.exists()) {
+                targetFileFolder.mkdirs();
+            }
+            String filePath = targetFileFolder.getPath() + "/" + userInfo.getUserId() + Constants.IMAGE_SUFFIX;
+            avatarFile.transferTo(new File(filePath));
+            avatarCover.transferTo(new File(filePath + Constants.COVER_IMAGE_SUFFIX));
+        }
+        UserInfo dbInfo = this.userInfoMapper.selectByUserId(userInfo.getUserId());
+
+        this.userInfoMapper.updateByUserId(userInfo, userInfo.getUserId());
+        //更新相关表冗余的字段
+        String contactNameUpdate = null;
+        if (!dbInfo.getNickName().equals(userInfo.getNickName())) {
+            contactNameUpdate = userInfo.getNickName();
+        }
+        if (contactNameUpdate == null) {
+            return;
+        }
+        //TODO 更新token中的昵称
+
     }
 
     @Override

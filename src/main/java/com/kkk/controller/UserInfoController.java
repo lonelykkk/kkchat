@@ -67,7 +67,7 @@ public class UserInfoController extends ABaseController {
     @RequestMapping("/logout")
     public ResponseVO logout(HttpServletRequest request) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo(request);
-        //关闭ws
+        //TODO 关闭ws
         return getSuccessResponseVO(null);
     }
 }
