@@ -4,6 +4,7 @@ import com.kkk.entity.constants.Constants;
 import com.kkk.entity.dto.SysSettingDto;
 import com.kkk.entity.dto.TokenUserInfoDto;
 import com.kkk.utils.StringTools;
+import io.netty.channel.Channel;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
@@ -122,5 +123,13 @@ public class RedisComponent {
         SysSettingDto sysSettingDto = (SysSettingDto) redisUtils.get(Constants.REDIS_KEY_SYS_SETTING);
         sysSettingDto = sysSettingDto == null ? new SysSettingDto() : sysSettingDto;
         return sysSettingDto;
+    }
+    public TokenUserInfoDto getTokenUserInfo(String token) {
+        TokenUserInfoDto tokenUserInfoDto = (TokenUserInfoDto) redisUtils.get(Constants.REDIS_KEY_WS_TOKEN + token);
+        return tokenUserInfoDto;
+    }
+
+    public void saveChannel(String userId, Channel channel) {
+        redisUtils.set(Constants.REDIS_KEY_WS_TOKEN + userId, channel);
     }
 }
