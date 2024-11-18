@@ -313,5 +313,6 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Override
     public void forceOffLine(String userId) {
+        //TODO 强制下线
     }
 }

@@ -62,5 +62,5 @@ log:
 ws:
   port: 5051
 admin:
-  email: 3352103646@qq.com
+  email: test@qq.com
 dev: false
