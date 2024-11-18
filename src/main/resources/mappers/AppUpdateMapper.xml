@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kkk.mappers.AppUpdateMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.kkk.entity.po.AppUpdate">
+        <!--自增ID-->
+        <id column="id" property="id"/>
+        <!--版本号-->
+        <result column="version" property="version"/>
+        <!--更新描述-->
+        <result column="update_desc" property="updateDesc"/>
+        <!--创建时间-->
+        <result column="create_time" property="createTime"/>
+        <!--0:未发布 1:灰度发布 2:全网发布-->
+        <result column="status" property="status"/>
+        <!--灰度uid-->
+        <result column="grayscale_uid" property="grayscaleUid"/>
+        <!--文件类型0:本地文件 1:外链-->
+        <result column="file_type" property="fileType"/>
+        <!--外链地址-->
+        <result column="outer_link" property="outerLink"/>
+    </resultMap>
+
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        id
+        ,version,update_desc,create_time,status,
+		 grayscale_uid,file_type,outer_link
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.id != null">
+            and id = #{query.id}
+        </if>
+        <if test="query.version != null and query.version!=''">
+            and version = #{query.version}
+        </if>
+        <if test="query.updateDesc != null and query.updateDesc!=''">
+            and update_desc = #{query.updateDesc}
+        </if>
+        <if test="query.createTime != null and query.createTime!=''">
+            <![CDATA[ and  create_time=str_to_date(#{query.createTime}, '%Y-%m-%d') ]]>
+        </if>
+        <if test="query.status != null">
+            and status = #{query.status}
+        </if>
+        <if test="query.grayscaleUid != null and query.grayscaleUid!=''">
+            and grayscale_uid = #{query.grayscaleUid}
+        </if>
+        <if test="query.fileType != null">
+            and file_type = #{query.fileType}
+        </if>
+        <if test="query.outerLink != null and query.outerLink!=''">
+            and outer_link = #{query.outerLink}
+        </if>
+    </sql>
+    <!-- 通用条件列-->
+    <sql id="base_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+        </where>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.versionFuzzy!= null  and query.versionFuzzy!=''">
+                and version like concat('%', #{query.versionFuzzy}, '%')
+            </if>
+            <if test="query.updateDescFuzzy!= null  and query.updateDescFuzzy!=''">
+                and update_desc like concat('%', #{query.updateDescFuzzy}, '%')
+            </if>
+            <if test="query.createTimeStart!= null and query.createTimeStart!=''">
+                <![CDATA[ and  create_time>=str_to_date(#{query.createTimeStart}, '%Y-%m-%d') ]]>
+            </if>
+            <if test="query.createTimeEnd!= null and query.createTimeEnd!=''">
+                <![CDATA[ and  create_time< date_sub(str_to_date(#{query.createTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+            </if>
+            <if test="query.grayscaleUidFuzzy!= null  and query.grayscaleUidFuzzy!=''">
+                and grayscale_uid like concat('%', #{query.grayscaleUidFuzzy}, '%')
+            </if>
+            <if test="query.outerLinkFuzzy!= null  and query.outerLinkFuzzy!=''">
+                and outer_link like concat('%', #{query.outerLinkFuzzy}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT
+        <include refid="base_column_list"/>
+        FROM app_update
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM app_update
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.easychat.entity.po.AppUpdate">
+        <selectKey keyProperty="bean.id" resultType="Integer" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO app_update
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.version != null">
+                version,
+            </if>
+            <if test="bean.updateDesc != null">
+                update_desc,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+            <if test="bean.grayscaleUid != null">
+                grayscale_uid,
+            </if>
+            <if test="bean.fileType != null">
+                file_type,
+            </if>
+            <if test="bean.outerLink != null">
+                outer_link,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.version!=null">
+                #{bean.version},
+            </if>
+            <if test="bean.updateDesc!=null">
+                #{bean.updateDesc},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+            <if test="bean.grayscaleUid!=null">
+                #{bean.grayscaleUid},
+            </if>
+            <if test="bean.fileType!=null">
+                #{bean.fileType},
+            </if>
+            <if test="bean.outerLink!=null">
+                #{bean.outerLink},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.easychat.entity.po.AppUpdate">
+        INSERT INTO app_update
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.id != null">
+                id,
+            </if>
+            <if test="bean.version != null">
+                version,
+            </if>
+            <if test="bean.updateDesc != null">
+                update_desc,
+            </if>
+            <if test="bean.createTime != null">
+                create_time,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+            <if test="bean.grayscaleUid != null">
+                grayscale_uid,
+            </if>
+            <if test="bean.fileType != null">
+                file_type,
+            </if>
+            <if test="bean.outerLink != null">
+                outer_link,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.id!=null">
+                #{bean.id},
+            </if>
+            <if test="bean.version!=null">
+                #{bean.version},
+            </if>
+            <if test="bean.updateDesc!=null">
+                #{bean.updateDesc},
+            </if>
+            <if test="bean.createTime!=null">
+                #{bean.createTime},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+            <if test="bean.grayscaleUid!=null">
+                #{bean.grayscaleUid},
+            </if>
+            <if test="bean.fileType!=null">
+                #{bean.fileType},
+            </if>
+            <if test="bean.outerLink!=null">
+                #{bean.outerLink},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.version!=null">
+                version = VALUES(version),
+            </if>
+            <if test="bean.updateDesc!=null">
+                update_desc = VALUES(update_desc),
+            </if>
+            <if test="bean.createTime!=null">
+                create_time = VALUES(create_time),
+            </if>
+            <if test="bean.status!=null">
+                status = VALUES(status),
+            </if>
+            <if test="bean.grayscaleUid!=null">
+                grayscale_uid = VALUES(grayscale_uid),
+            </if>
+            <if test="bean.fileType!=null">
+                file_type = VALUES(file_type),
+            </if>
+            <if test="bean.outerLink!=null">
+                outer_link = VALUES(outer_link),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.easychat.entity.po.AppUpdate" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO app_update(
+        version,
+        update_desc,
+        create_time,
+        status,
+        grayscale_uid,
+        file_type,
+        outer_link
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.version},
+            #{item.updateDesc},
+            #{item.createTime},
+            #{item.status},
+            #{item.grayscaleUid},
+            #{item.fileType},
+            #{item.outerLink}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.easychat.entity.po.AppUpdate">
+        INSERT INTO app_update(
+        version,
+        update_desc,
+        create_time,
+        status,
+        grayscale_uid,
+        file_type,
+        outer_link
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.version},
+            #{item.updateDesc},
+            #{item.createTime},
+            #{item.status},
+            #{item.grayscaleUid},
+            #{item.fileType},
+            #{item.outerLink}
+            )
+        </foreach>
+        on DUPLICATE key update
+        version = VALUES(version),
+        update_desc = VALUES(update_desc),
+        create_time = VALUES(create_time),
+        status = VALUES(status),
+        grayscale_uid = VALUES(grayscale_uid),
+        file_type = VALUES(file_type),
+        outer_link = VALUES(outer_link)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.easychat.entity.query.AppUpdateQuery">
+        UPDATE app_update
+        <set>
+            <if test="bean.version != null">
+                version = #{bean.version},
+            </if>
+            <if test="bean.updateDesc != null">
+                update_desc = #{bean.updateDesc},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+            <if test="bean.grayscaleUid != null">
+                grayscale_uid = #{bean.grayscaleUid},
+            </if>
+            <if test="bean.fileType != null">
+                file_type = #{bean.fileType},
+            </if>
+            <if test="bean.outerLink != null">
+                outer_link = #{bean.outerLink},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete from app_update
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据Id修改-->
+    <update id="updateById" parameterType="com.easychat.entity.po.AppUpdate">
+        UPDATE app_update
+        <set>
+            <if test="bean.version != null">
+                version = #{bean.version},
+            </if>
+            <if test="bean.updateDesc != null">
+                update_desc = #{bean.updateDesc},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+            <if test="bean.grayscaleUid != null">
+                grayscale_uid = #{bean.grayscaleUid},
+            </if>
+            <if test="bean.fileType != null">
+                file_type = #{bean.fileType},
+            </if>
+            <if test="bean.outerLink != null">
+                outer_link = #{bean.outerLink},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <!-- 根据Id删除-->
+    <delete id="deleteById">
+        delete
+        from app_update
+        where id = #{id}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectById" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from app_update where id=#{id}
+    </select>
+
+    <!-- 根据Version修改-->
+    <update id="updateByVersion" parameterType="com.easychat.entity.po.AppUpdate">
+        UPDATE app_update
+        <set>
+            <if test="bean.updateDesc != null">
+                update_desc = #{bean.updateDesc},
+            </if>
+            <if test="bean.createTime != null">
+                create_time = #{bean.createTime},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+            <if test="bean.grayscaleUid != null">
+                grayscale_uid = #{bean.grayscaleUid},
+            </if>
+            <if test="bean.fileType != null">
+                file_type = #{bean.fileType},
+            </if>
+            <if test="bean.outerLink != null">
+                outer_link = #{bean.outerLink},
+            </if>
+        </set>
+        where version=#{version}
+    </update>
+
+    <!-- 根据Version删除-->
+    <delete id="deleteByVersion">
+        delete
+        from app_update
+        where version = #{version}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByVersion" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from app_update where version=#{version}
+    </select>
+	
+    <select id="selectLatestUpdate" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"></include>
+        from app_update where version>#{version} and (status = 2 or (status=1 and find_in_set(#{uid},grayscale_uid)))
+        order by id desc limit 0,1
+    </select>
+</mapper>
