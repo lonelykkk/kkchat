@@ -28,17 +28,6 @@ spring:
       max-lifetime: 1800000
       connection-timeout: 30000
       connection-test-query: SELECT 1
-  mail:
-    host: smtp.qq.com  # QQ ?? SMTP ?????
-    port: 465          # QQ ?? SMTP ????????? 587 ? 465
-    username: 2765314967@qq.com # ?? QQ ????
-    password: crwompcjwdxbdcie            # ?? QQ ?? SMTP ??
-    protocol: smtp                     # ????
-    properties:
-      mail.smtp.auth: true             # ????
-      mail.smtp.starttls.enable: true  # ?? TLS
-      mail.smtp.starttls.required: true
-
   redis:
     database: 0
     host: 127.0.0.1
