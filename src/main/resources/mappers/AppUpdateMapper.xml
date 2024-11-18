@@ -110,7 +110,7 @@
     </select>
 
     <!-- 插入 （匹配有值的字段）-->
-    <insert id="insert" parameterType="com.easychat.entity.po.AppUpdate">
+    <insert id="insert" parameterType="com.kkk.entity.po.AppUpdate">
         <selectKey keyProperty="bean.id" resultType="Integer" order="AFTER">
             SELECT LAST_INSERT_ID()
         </selectKey>
@@ -164,7 +164,7 @@
     </insert>
 
     <!-- 插入或者更新 （匹配有值的字段）-->
-    <insert id="insertOrUpdate" parameterType="com.easychat.entity.po.AppUpdate">
+    <insert id="insertOrUpdate" parameterType="com.kkk.entity.po.AppUpdate">
         INSERT INTO app_update
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="bean.id != null">
@@ -245,7 +245,7 @@
     </insert>
 
     <!-- 添加 （批量插入）-->
-    <insert id="insertBatch" parameterType="com.easychat.entity.po.AppUpdate" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertBatch" parameterType="com.kkk.entity.po.AppUpdate" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO app_update(
         version,
         update_desc,
@@ -269,7 +269,7 @@
     </insert>
 
     <!-- 批量新增修改 （批量插入）-->
-    <insert id="insertOrUpdateBatch" parameterType="com.easychat.entity.po.AppUpdate">
+    <insert id="insertOrUpdateBatch" parameterType="com.kkk.entity.po.AppUpdate">
         INSERT INTO app_update(
         version,
         update_desc,
@@ -301,7 +301,7 @@
     </insert>
 
     <!--多条件修改-->
-    <update id="updateByParam" parameterType="com.easychat.entity.query.AppUpdateQuery">
+    <update id="updateByParam" parameterType="com.kkk.entity.query.AppUpdateQuery">
         UPDATE app_update
         <set>
             <if test="bean.version != null">
@@ -336,7 +336,7 @@
     </delete>
 
     <!-- 根据Id修改-->
-    <update id="updateById" parameterType="com.easychat.entity.po.AppUpdate">
+    <update id="updateById" parameterType="com.kkk.entity.po.AppUpdate">
         UPDATE app_update
         <set>
             <if test="bean.version != null">
@@ -379,7 +379,7 @@
     </select>
 
     <!-- 根据Version修改-->
-    <update id="updateByVersion" parameterType="com.easychat.entity.po.AppUpdate">
+    <update id="updateByVersion" parameterType="com.kkk.entity.po.AppUpdate">
         UPDATE app_update
         <set>
             <if test="bean.updateDesc != null">
