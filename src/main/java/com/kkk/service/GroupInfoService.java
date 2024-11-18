@@ -74,7 +74,7 @@ public interface GroupInfoService {
 
     void saveGroup(GroupInfo groupInfo, MultipartFile avatarFile, MultipartFile avatarCover);
 
-    void dissolutionGroup(String userId, String groupId);
+    void dissolutionGroup(String groupOwnerId, String groupId);
 
     void leaveGroup(String userId, String groupId, MessageTypeEnum messageTypeEnum);
 

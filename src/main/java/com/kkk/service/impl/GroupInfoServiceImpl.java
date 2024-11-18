@@ -225,8 +225,29 @@ public class GroupInfoServiceImpl implements GroupInfoService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void dissolutionGroup(String userId, String groupId) {
+    public void dissolutionGroup(String groupOwnerId, String groupId) {
+        GroupInfo dbInfo = groupInfoMapper.selectByGroupId(groupId);
+        //如果未查到或者删除人不是群主
+        if (dbInfo == null || !dbInfo.getGroupOwnerId().equals(groupOwnerId)) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        //删除群组,逻辑删除
+        GroupInfo updateInfo = new GroupInfo();
+        updateInfo.setStatus(GroupStatusEnum.DISSOLUTION.getStatus());
+        groupInfoMapper.updateByGroupId(updateInfo, groupId);
 
+        //跟新联系人信息
+        UserContactQuery userContactQuery = new UserContactQuery();
+        userContactQuery.setContactId(groupId);
+        userContactQuery.setContactType(UserContactTypeEnum.GROUP.getType());
+
+        UserContact updateUserContact = new UserContact();
+        updateUserContact.setStatus(UserContactStatusEnum.DEL.getStatus());
+        userContactMapper.updateByParam(updateUserContact, userContactQuery);
+
+        //TODO 移除相关群员的联系人缓存
+
+        //TODO 发消息 1、更新会话信息 2、记录群消息 3、发送解散群消息
     }
 
     @Override
