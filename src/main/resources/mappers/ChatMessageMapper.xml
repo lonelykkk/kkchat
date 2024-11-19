@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kkk.mappers.ChatMessageMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.kkk.entity.po.ChatMessage">
+        <!--消息自增ID-->
+        <id column="message_id" property="messageId"/>
+        <!--会话ID-->
+        <result column="session_id" property="sessionId"/>
+        <!--消息类型-->
+        <result column="message_type" property="messageType"/>
+        <!--消息内容-->
+        <result column="message_content" property="messageContent"/>
+        <!--发送人ID-->
+        <result column="send_user_id" property="sendUserId"/>
+        <!--发送人昵称-->
+        <result column="send_user_nick_name" property="sendUserNickName"/>
+        <!--发送时间-->
+        <result column="send_time" property="sendTime"/>
+        <!--接收联系人ID-->
+        <result column="contact_id" property="contactId"/>
+        <!--联系人类型 0:单聊 1:群聊-->
+        <result column="contact_type" property="contactType"/>
+        <!--文件大小-->
+        <result column="file_size" property="fileSize"/>
+        <!--文件名-->
+        <result column="file_name" property="fileName"/>
+        <!--文件类型-->
+        <result column="file_type" property="fileType"/>
+        <!--状态 0:正在发送 1:已发送-->
+        <result column="status" property="status"/>
+    </resultMap>
+
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        message_id
+        ,session_id,message_type,message_content,send_user_id,
+		 send_user_nick_name,send_time,contact_id,contact_type,file_size,
+		 file_name,file_type,status
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.messageId != null">
+            and message_id = #{query.messageId}
+        </if>
+        <if test="query.sessionId != null and query.sessionId!=''">
+            and session_id = #{query.sessionId}
+        </if>
+        <if test="query.messageType != null">
+            and message_type = #{query.messageType}
+        </if>
+        <if test="query.messageContent != null and query.messageContent!=''">
+            and message_content = #{query.messageContent}
+        </if>
+        <if test="query.sendUserId != null and query.sendUserId!=''">
+            and send_user_id = #{query.sendUserId}
+        </if>
+        <if test="query.sendUserNickName != null and query.sendUserNickName!=''">
+            and send_user_nick_name = #{query.sendUserNickName}
+        </if>
+        <if test="query.sendTime != null">
+            and send_time = #{query.sendTime}
+        </if>
+        <if test="query.contactId != null and query.contactId!=''">
+            and contact_id = #{query.contactId}
+        </if>
+        <if test="query.contactType != null">
+            and contact_type = #{query.contactType}
+        </if>
+        <if test="query.fileSize != null">
+            and file_size = #{query.fileSize}
+        </if>
+        <if test="query.fileName != null and query.fileName!=''">
+            and file_name = #{query.fileName}
+        </if>
+        <if test="query.fileType != null">
+            and file_type = #{query.fileType}
+        </if>
+        <if test="query.status != null">
+            and status = #{query.status}
+        </if>
+    </sql>
+    <!-- 通用条件列-->
+    <sql id="base_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+        </where>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.sessionIdFuzzy!= null  and query.sessionIdFuzzy!=''">
+                and session_id like concat('%', #{query.sessionIdFuzzy}, '%')
+            </if>
+            <if test="query.messageContentFuzzy!= null  and query.messageContentFuzzy!=''">
+                and message_content like concat('%', #{query.messageContentFuzzy}, '%')
+            </if>
+            <if test="query.sendUserIdFuzzy!= null  and query.sendUserIdFuzzy!=''">
+                and send_user_id like concat('%', #{query.sendUserIdFuzzy}, '%')
+            </if>
+            <if test="query.sendUserNickNameFuzzy!= null  and query.sendUserNickNameFuzzy!=''">
+                and send_user_nick_name like concat('%', #{query.sendUserNickNameFuzzy}, '%')
+            </if>
+            <if test="query.contactIdFuzzy!= null  and query.contactIdFuzzy!=''">
+                and contact_id like concat('%', #{query.contactIdFuzzy}, '%')
+            </if>
+            <if test="query.fileNameFuzzy!= null  and query.fileNameFuzzy!=''">
+                and file_name like concat('%', #{query.fileNameFuzzy}, '%')
+            </if>
+            <!--额外添加的查询条件-->
+            <if test="query.lastReceiveTime!=null">
+                and send_time>=#{query.lastReceiveTime}
+            </if>
+            <if test="query.contactIdList!=null and query.contactIdList.size()>0">
+                and contact_id in(<foreach collection="query.contactIdList" separator="," item="item">#{item}</foreach>)
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT
+        <include refid="base_column_list"/>
+        FROM chat_message
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM chat_message
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.kkk.entity.po.ChatMessage">
+        <selectKey keyProperty="bean.messageId" resultType="Long" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO chat_message
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.sessionId != null">
+                session_id,
+            </if>
+            <if test="bean.messageType != null">
+                message_type,
+            </if>
+            <if test="bean.messageContent != null">
+                message_content,
+            </if>
+            <if test="bean.sendUserId != null">
+                send_user_id,
+            </if>
+            <if test="bean.sendUserNickName != null">
+                send_user_nick_name,
+            </if>
+            <if test="bean.sendTime != null">
+                send_time,
+            </if>
+            <if test="bean.contactId != null">
+                contact_id,
+            </if>
+            <if test="bean.contactType != null">
+                contact_type,
+            </if>
+            <if test="bean.fileSize != null">
+                file_size,
+            </if>
+            <if test="bean.fileName != null">
+                file_name,
+            </if>
+            <if test="bean.fileType != null">
+                file_type,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.sessionId!=null">
+                #{bean.sessionId},
+            </if>
+            <if test="bean.messageType!=null">
+                #{bean.messageType},
+            </if>
+            <if test="bean.messageContent!=null">
+                #{bean.messageContent},
+            </if>
+            <if test="bean.sendUserId!=null">
+                #{bean.sendUserId},
+            </if>
+            <if test="bean.sendUserNickName!=null">
+                #{bean.sendUserNickName},
+            </if>
+            <if test="bean.sendTime!=null">
+                #{bean.sendTime},
+            </if>
+            <if test="bean.contactId!=null">
+                #{bean.contactId},
+            </if>
+            <if test="bean.contactType!=null">
+                #{bean.contactType},
+            </if>
+            <if test="bean.fileSize!=null">
+                #{bean.fileSize},
+            </if>
+            <if test="bean.fileName!=null">
+                #{bean.fileName},
+            </if>
+            <if test="bean.fileType!=null">
+                #{bean.fileType},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.kkk.entity.po.ChatMessage">
+        INSERT INTO chat_message
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.messageId != null">
+                message_id,
+            </if>
+            <if test="bean.sessionId != null">
+                session_id,
+            </if>
+            <if test="bean.messageType != null">
+                message_type,
+            </if>
+            <if test="bean.messageContent != null">
+                message_content,
+            </if>
+            <if test="bean.sendUserId != null">
+                send_user_id,
+            </if>
+            <if test="bean.sendUserNickName != null">
+                send_user_nick_name,
+            </if>
+            <if test="bean.sendTime != null">
+                send_time,
+            </if>
+            <if test="bean.contactId != null">
+                contact_id,
+            </if>
+            <if test="bean.contactType != null">
+                contact_type,
+            </if>
+            <if test="bean.fileSize != null">
+                file_size,
+            </if>
+            <if test="bean.fileName != null">
+                file_name,
+            </if>
+            <if test="bean.fileType != null">
+                file_type,
+            </if>
+            <if test="bean.status != null">
+                status,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.messageId!=null">
+                #{bean.messageId},
+            </if>
+            <if test="bean.sessionId!=null">
+                #{bean.sessionId},
+            </if>
+            <if test="bean.messageType!=null">
+                #{bean.messageType},
+            </if>
+            <if test="bean.messageContent!=null">
+                #{bean.messageContent},
+            </if>
+            <if test="bean.sendUserId!=null">
+                #{bean.sendUserId},
+            </if>
+            <if test="bean.sendUserNickName!=null">
+                #{bean.sendUserNickName},
+            </if>
+            <if test="bean.sendTime!=null">
+                #{bean.sendTime},
+            </if>
+            <if test="bean.contactId!=null">
+                #{bean.contactId},
+            </if>
+            <if test="bean.contactType!=null">
+                #{bean.contactType},
+            </if>
+            <if test="bean.fileSize!=null">
+                #{bean.fileSize},
+            </if>
+            <if test="bean.fileName!=null">
+                #{bean.fileName},
+            </if>
+            <if test="bean.fileType!=null">
+                #{bean.fileType},
+            </if>
+            <if test="bean.status!=null">
+                #{bean.status},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.sessionId!=null">
+                session_id = VALUES(session_id),
+            </if>
+            <if test="bean.messageType!=null">
+                message_type = VALUES(message_type),
+            </if>
+            <if test="bean.messageContent!=null">
+                message_content = VALUES(message_content),
+            </if>
+            <if test="bean.sendUserId!=null">
+                send_user_id = VALUES(send_user_id),
+            </if>
+            <if test="bean.sendUserNickName!=null">
+                send_user_nick_name = VALUES(send_user_nick_name),
+            </if>
+            <if test="bean.sendTime!=null">
+                send_time = VALUES(send_time),
+            </if>
+            <if test="bean.contactId!=null">
+                contact_id = VALUES(contact_id),
+            </if>
+            <if test="bean.contactType!=null">
+                contact_type = VALUES(contact_type),
+            </if>
+            <if test="bean.fileSize!=null">
+                file_size = VALUES(file_size),
+            </if>
+            <if test="bean.fileName!=null">
+                file_name = VALUES(file_name),
+            </if>
+            <if test="bean.fileType!=null">
+                file_type = VALUES(file_type),
+            </if>
+            <if test="bean.status!=null">
+                status = VALUES(status),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.kkk.entity.po.ChatMessage" useGeneratedKeys="true"
+            keyProperty="messageId">
+        INSERT INTO chat_message(
+        session_id,
+        message_type,
+        message_content,
+        send_user_id,
+        send_user_nick_name,
+        send_time,
+        contact_id,
+        contact_type,
+        file_size,
+        file_name,
+        file_type,
+        status
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.sessionId},
+            #{item.messageType},
+            #{item.messageContent},
+            #{item.sendUserId},
+            #{item.sendUserNickName},
+            #{item.sendTime},
+            #{item.contactId},
+            #{item.contactType},
+            #{item.fileSize},
+            #{item.fileName},
+            #{item.fileType},
+            #{item.status}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.kkk.entity.po.ChatMessage">
+        INSERT INTO chat_message(
+        session_id,
+        message_type,
+        message_content,
+        send_user_id,
+        send_user_nick_name,
+        send_time,
+        contact_id,
+        contact_type,
+        file_size,
+        file_name,
+        file_type,
+        status
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.sessionId},
+            #{item.messageType},
+            #{item.messageContent},
+            #{item.sendUserId},
+            #{item.sendUserNickName},
+            #{item.sendTime},
+            #{item.contactId},
+            #{item.contactType},
+            #{item.fileSize},
+            #{item.fileName},
+            #{item.fileType},
+            #{item.status}
+            )
+        </foreach>
+        on DUPLICATE key update
+        session_id = VALUES(session_id),
+        message_type = VALUES(message_type),
+        message_content = VALUES(message_content),
+        send_user_id = VALUES(send_user_id),
+        send_user_nick_name = VALUES(send_user_nick_name),
+        send_time = VALUES(send_time),
+        contact_id = VALUES(contact_id),
+        contact_type = VALUES(contact_type),
+        file_size = VALUES(file_size),
+        file_name = VALUES(file_name),
+        file_type = VALUES(file_type),
+        status = VALUES(status)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.kkk.entity.query.ChatMessageQuery">
+        UPDATE chat_message
+        <set>
+            <if test="bean.sessionId != null">
+                session_id = #{bean.sessionId},
+            </if>
+            <if test="bean.messageType != null">
+                message_type = #{bean.messageType},
+            </if>
+            <if test="bean.messageContent != null">
+                message_content = #{bean.messageContent},
+            </if>
+            <if test="bean.sendUserId != null">
+                send_user_id = #{bean.sendUserId},
+            </if>
+            <if test="bean.sendUserNickName != null">
+                send_user_nick_name = #{bean.sendUserNickName},
+            </if>
+            <if test="bean.sendTime != null">
+                send_time = #{bean.sendTime},
+            </if>
+            <if test="bean.contactId != null">
+                contact_id = #{bean.contactId},
+            </if>
+            <if test="bean.contactType != null">
+                contact_type = #{bean.contactType},
+            </if>
+            <if test="bean.fileSize != null">
+                file_size = #{bean.fileSize},
+            </if>
+            <if test="bean.fileName != null">
+                file_name = #{bean.fileName},
+            </if>
+            <if test="bean.fileType != null">
+                file_type = #{bean.fileType},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete from chat_message
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据MessageId修改-->
+    <update id="updateByMessageId" parameterType="com.kkk.entity.po.ChatMessage">
+        UPDATE chat_message
+        <set>
+            <if test="bean.sessionId != null">
+                session_id = #{bean.sessionId},
+            </if>
+            <if test="bean.messageType != null">
+                message_type = #{bean.messageType},
+            </if>
+            <if test="bean.messageContent != null">
+                message_content = #{bean.messageContent},
+            </if>
+            <if test="bean.sendUserId != null">
+                send_user_id = #{bean.sendUserId},
+            </if>
+            <if test="bean.sendUserNickName != null">
+                send_user_nick_name = #{bean.sendUserNickName},
+            </if>
+            <if test="bean.sendTime != null">
+                send_time = #{bean.sendTime},
+            </if>
+            <if test="bean.contactId != null">
+                contact_id = #{bean.contactId},
+            </if>
+            <if test="bean.contactType != null">
+                contact_type = #{bean.contactType},
+            </if>
+            <if test="bean.fileSize != null">
+                file_size = #{bean.fileSize},
+            </if>
+            <if test="bean.fileName != null">
+                file_name = #{bean.fileName},
+            </if>
+            <if test="bean.fileType != null">
+                file_type = #{bean.fileType},
+            </if>
+            <if test="bean.status != null">
+                status = #{bean.status},
+            </if>
+        </set>
+        where message_id=#{messageId}
+    </update>
+
+    <!-- 根据MessageId删除-->
+    <delete id="deleteByMessageId">
+        delete
+        from chat_message
+        where message_id = #{messageId}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByMessageId" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from chat_message where message_id=#{messageId}
+    </select>
+
+</mapper>

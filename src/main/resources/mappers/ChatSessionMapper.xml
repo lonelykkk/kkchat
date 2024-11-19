@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kkk.mappers.ChatSessionMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.kkk.entity.po.ChatSession">
+        <!--会话ID-->
+        <result column="session_id" property="sessionId"/>
+        <!--最后接受的消息-->
+        <result column="last_message" property="lastMessage"/>
+        <!--最后接受消息时间毫秒-->
+        <result column="last_receive_time" property="lastReceiveTime"/>
+    </resultMap>
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        session_id
+        ,last_message,last_receive_time
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.sessionId != null and query.sessionId!=''">
+            and session_id = #{query.sessionId}
+        </if>
+        <if test="query.lastMessage != null and query.lastMessage!=''">
+            and last_message = #{query.lastMessage}
+        </if>
+        <if test="query.lastReceiveTime != null">
+            and last_receive_time = #{query.lastReceiveTime}
+        </if>
+    </sql>
+    <!-- 通用条件列-->
+    <sql id="base_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+        </where>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.sessionIdFuzzy!= null  and query.sessionIdFuzzy!=''">
+                and session_id like concat('%', #{query.sessionIdFuzzy}, '%')
+            </if>
+            <if test="query.lastMessageFuzzy!= null  and query.lastMessageFuzzy!=''">
+                and last_message like concat('%', #{query.lastMessageFuzzy}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT
+        <include refid="base_column_list"/>
+        FROM chat_session
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM chat_session
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.kkk.entity.po.ChatSession">
+        INSERT INTO chat_session
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.sessionId != null">
+                session_id,
+            </if>
+            <if test="bean.lastMessage != null">
+                last_message,
+            </if>
+            <if test="bean.lastReceiveTime != null">
+                last_receive_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.sessionId!=null">
+                #{bean.sessionId},
+            </if>
+            <if test="bean.lastMessage!=null">
+                #{bean.lastMessage},
+            </if>
+            <if test="bean.lastReceiveTime!=null">
+                #{bean.lastReceiveTime},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.kkk.entity.po.ChatSession">
+        INSERT INTO chat_session
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.sessionId != null">
+                session_id,
+            </if>
+            <if test="bean.lastMessage != null">
+                last_message,
+            </if>
+            <if test="bean.lastReceiveTime != null">
+                last_receive_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.sessionId!=null">
+                #{bean.sessionId},
+            </if>
+            <if test="bean.lastMessage!=null">
+                #{bean.lastMessage},
+            </if>
+            <if test="bean.lastReceiveTime!=null">
+                #{bean.lastReceiveTime},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.sessionId!=null">
+                session_id = VALUES(session_id),
+            </if>
+            <if test="bean.lastMessage!=null">
+                last_message = VALUES(last_message),
+            </if>
+            <if test="bean.lastReceiveTime!=null">
+                last_receive_time = VALUES(last_receive_time),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.kkk.entity.po.ChatSession">
+        INSERT INTO chat_session(
+        session_id,
+        last_message,
+        last_receive_time
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.sessionId},
+            #{item.lastMessage},
+            #{item.lastReceiveTime}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.kkk.entity.po.ChatSession">
+        INSERT INTO chat_session(
+        session_id,
+        last_message,
+        last_receive_time
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.sessionId},
+            #{item.lastMessage},
+            #{item.lastReceiveTime}
+            )
+        </foreach>
+        on DUPLICATE key update
+        session_id = VALUES(session_id),
+        last_message = VALUES(last_message),
+        last_receive_time = VALUES(last_receive_time)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.kkk.entity.query.ChatSessionQuery">
+        UPDATE chat_session
+        <set>
+            <if test="bean.sessionId != null">
+                session_id = #{bean.sessionId},
+            </if>
+            <if test="bean.lastMessage != null">
+                last_message = #{bean.lastMessage},
+            </if>
+            <if test="bean.lastReceiveTime != null">
+                last_receive_time = #{bean.lastReceiveTime},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete from chat_session
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据SessionId修改-->
+    <update id="updateBySessionId" parameterType="com.kkk.entity.po.ChatSession">
+        UPDATE chat_session
+        <set>
+            <if test="bean.lastMessage != null">
+                last_message = #{bean.lastMessage},
+            </if>
+            <if test="bean.lastReceiveTime != null">
+                last_receive_time = #{bean.lastReceiveTime},
+            </if>
+        </set>
+        where session_id=#{sessionId}
+    </update>
+
+    <!-- 根据SessionId删除-->
+    <delete id="deleteBySessionId">
+        delete
+        from chat_session
+        where session_id = #{sessionId}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectBySessionId" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from chat_session where session_id=#{sessionId}
+    </select>
+
+</mapper>

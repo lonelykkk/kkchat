@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kkk.mappers.ChatSessionUserMapper">
+
+    <!--实体映射-->
+    <resultMap id="base_result_map" type="com.kkk.entity.po.ChatSessionUser">
+        <!--用户ID-->
+        <result column="user_id" property="userId"/>
+        <!--联系人ID-->
+        <result column="contact_id" property="contactId"/>
+        <!--会话ID-->
+        <result column="session_id" property="sessionId"/>
+        <!--联系人名称-->
+        <result column="contact_name" property="contactName"/>
+    </resultMap>
+
+
+    <!-- 通用查询结果列-->
+    <sql id="base_column_list">
+        user_id
+        ,contact_id,session_id,
+		 contact_name
+    </sql>
+
+    <sql id="base_condition_filed">
+        <if test="query.userId != null and query.userId!=''">
+            and user_id = #{query.userId}
+        </if>
+        <if test="query.contactId != null and query.contactId!=''">
+            and contact_id = #{query.contactId}
+        </if>
+        <if test="query.sessionId != null and query.sessionId!=''">
+            and session_id = #{query.sessionId}
+        </if>
+        <if test="query.contactName != null and query.contactName!=''">
+            and contact_name = #{query.contactName}
+        </if>
+    </sql>
+
+    <!-- 通用查询条件列-->
+    <sql id="query_condition">
+        <where>
+            <include refid="base_condition_filed"/>
+            <if test="query.userIdFuzzy!= null  and query.userIdFuzzy!=''">
+                and user_id like concat('%', #{query.userIdFuzzy}, '%')
+            </if>
+            <if test="query.contactIdFuzzy!= null  and query.contactIdFuzzy!=''">
+                and contact_id like concat('%', #{query.contactIdFuzzy}, '%')
+            </if>
+            <if test="query.sessionIdFuzzy!= null  and query.sessionIdFuzzy!=''">
+                and session_id like concat('%', #{query.sessionIdFuzzy}, '%')
+            </if>
+            <if test="query.contactNameFuzzy!= null  and query.contactNameFuzzy!=''">
+                and contact_name like concat('%', #{query.contactNameFuzzy}, '%')
+            </if>
+            <if test="query.lastReceiveTime!=null">
+                and c.last_receive_time>=#{query.lastReceiveTime}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 查询集合-->
+    <select id="selectList" resultMap="base_result_map">
+        SELECT u.*,
+        c.last_message lastMessage,
+        c.last_receive_time lastReceiveTime,
+        case when SUBSTRING(contact_id, 1, 1) ='G'
+        THEN (select count(1) from user_contact uc where uc.contact_id = u.contact_id)
+        else 0
+        end memberCount
+        FROM chat_session_user u inner join chat_session c on c.session_id = u.session_id
+        <include refid="query_condition"/>
+        <if test="query.orderBy!=null">
+            order by ${query.orderBy}
+        </if>
+        <if test="query.simplePage!=null">
+            limit #{query.simplePage.start},#{query.simplePage.end}
+        </if>
+    </select>
+
+    <!-- 查询数量-->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM chat_session_user
+        <include refid="query_condition"/>
+    </select>
+
+    <!-- 插入 （匹配有值的字段）-->
+    <insert id="insert" parameterType="com.kkk.entity.po.ChatSessionUser">
+        INSERT INTO chat_session_user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.userId != null">
+                user_id,
+            </if>
+            <if test="bean.contactId != null">
+                contact_id,
+            </if>
+            <if test="bean.sessionId != null">
+                session_id,
+            </if>
+            <if test="bean.contactName != null">
+                contact_name,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.userId!=null">
+                #{bean.userId},
+            </if>
+            <if test="bean.contactId!=null">
+                #{bean.contactId},
+            </if>
+            <if test="bean.sessionId!=null">
+                #{bean.sessionId},
+            </if>
+            <if test="bean.contactName!=null">
+                #{bean.contactName},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入或者更新 （匹配有值的字段）-->
+    <insert id="insertOrUpdate" parameterType="com.kkk.entity.po.ChatSessionUser">
+        INSERT INTO chat_session_user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bean.userId != null">
+                user_id,
+            </if>
+            <if test="bean.contactId != null">
+                contact_id,
+            </if>
+            <if test="bean.sessionId != null">
+                session_id,
+            </if>
+            <if test="bean.contactName != null">
+                contact_name,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bean.userId!=null">
+                #{bean.userId},
+            </if>
+            <if test="bean.contactId!=null">
+                #{bean.contactId},
+            </if>
+            <if test="bean.sessionId!=null">
+                #{bean.sessionId},
+            </if>
+            <if test="bean.contactName!=null">
+                #{bean.contactName},
+            </if>
+        </trim>
+        on DUPLICATE key update
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="bean.userId!=null">
+                user_id = VALUES(user_id),
+            </if>
+            <if test="bean.contactId!=null">
+                contact_id = VALUES(contact_id),
+            </if>
+            <if test="bean.sessionId!=null">
+                session_id = VALUES(session_id),
+            </if>
+            <if test="bean.contactName!=null">
+                contact_name = VALUES(contact_name),
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 添加 （批量插入）-->
+    <insert id="insertBatch" parameterType="com.kkk.entity.po.ChatSessionUser">
+        INSERT INTO chat_session_user(
+        user_id,
+        contact_id,
+        session_id,
+        contact_name
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId},
+            #{item.contactId},
+            #{item.sessionId},
+            #{item.contactName}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 批量新增修改 （批量插入）-->
+    <insert id="insertOrUpdateBatch" parameterType="com.kkk.entity.po.ChatSessionUser">
+        INSERT INTO chat_session_user(
+        user_id,
+        contact_id,
+        session_id,
+        contact_name
+        )values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId},
+            #{item.contactId},
+            #{item.sessionId},
+            #{item.contactName}
+            )
+        </foreach>
+        on DUPLICATE key update
+        user_id = VALUES(user_id),
+        contact_id = VALUES(contact_id),
+        session_id = VALUES(session_id),
+        contact_name = VALUES(contact_name)
+    </insert>
+
+    <!--多条件修改-->
+    <update id="updateByParam" parameterType="com.kkk.entity.query.ChatSessionUserQuery">
+        UPDATE chat_session_user
+        <set>
+            <if test="bean.userId != null">
+                user_id = #{bean.userId},
+            </if>
+            <if test="bean.contactId != null">
+                contact_id = #{bean.contactId},
+            </if>
+            <if test="bean.sessionId != null">
+                session_id = #{bean.sessionId},
+            </if>
+            <if test="bean.contactName != null">
+                contact_name = #{bean.contactName},
+            </if>
+        </set>
+        <include refid="query_condition"/>
+    </update>
+
+    <!--多条件删除-->
+    <delete id="deleteByParam">
+        delete from chat_session_user
+        <include refid="query_condition"/>
+    </delete>
+
+    <!-- 根据UserIdAndContactId修改-->
+    <update id="updateByUserIdAndContactId" parameterType="com.kkk.entity.po.ChatSessionUser">
+        UPDATE chat_session_user
+        <set>
+            <if test="bean.sessionId != null">
+                session_id = #{bean.sessionId},
+            </if>
+            <if test="bean.contactName != null">
+                contact_name = #{bean.contactName},
+            </if>
+        </set>
+        where user_id=#{userId} and contact_id=#{contactId}
+    </update>
+
+    <!-- 根据UserIdAndContactId删除-->
+    <delete id="deleteByUserIdAndContactId">
+        delete
+        from chat_session_user
+        where user_id = #{userId}
+          and contact_id = #{contactId}
+    </delete>
+
+    <!-- 根据PrimaryKey获取对象-->
+    <select id="selectByUserIdAndContactId" resultMap="base_result_map">
+        select
+        <include refid="base_column_list"/>
+        from chat_session_user where user_id=#{userId} and contact_id=#{contactId}
+    </select>
+
+</mapper>

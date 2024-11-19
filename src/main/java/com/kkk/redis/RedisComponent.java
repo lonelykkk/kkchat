@@ -129,7 +129,5 @@ public class RedisComponent {
         return tokenUserInfoDto;
     }
 
-    public void saveChannel(String userId, Channel channel) {
-        redisUtils.set(Constants.REDIS_KEY_WS_TOKEN + userId, channel);
-    }
+
 }

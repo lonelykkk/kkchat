@@ -13,6 +13,7 @@ import com.kkk.entity.query.*;
 import com.kkk.entity.vo.PaginationResultVO;
 import com.kkk.entity.vo.UserInfoVO;
 import com.kkk.exception.BusinessException;
+import com.kkk.mappers.UserContactMapper;
 import com.kkk.mappers.UserInfoBeautyMapper;
 import com.kkk.mappers.UserInfoMapper;
 import com.kkk.redis.RedisComponent;
@@ -47,12 +48,12 @@ public class UserInfoServiceImpl implements UserInfoService {
     private AppConfig appConfig;
     @Resource
     private RedisComponent redisComponent;
-
+    @Resource
+    private UserContactMapper<UserContact, UserContactQuery> userContactMapper;
     /*@Resource
     private GroupInfoMapper<GroupInfo, GroupInfoQuery> groupInfoMapper;
 
-    @Resource
-    private UserContactMapper<UserContact, UserContactQuery> userContactMapper;
+
 
     @Resource
     private RedisComponent redisComponet;
@@ -238,9 +239,18 @@ public class UserInfoServiceImpl implements UserInfoService {
         if (UserStatusEnum.DISABLE.getStatus().equals(userInfo.getStatus())) {
             throw new BusinessException("账号已禁用");
         }
-
-
         //TODO 获取联系人列表
+        UserContactQuery contactQuery = new UserContactQuery();
+        contactQuery.setUserId(userInfo.getUserId());
+        contactQuery.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+        List<UserContact> contactList = userContactMapper.selectList(contactQuery);
+        List<String> constantIdList = contactList.stream().map(item -> item.getContactId()).collect(Collectors.toList());
+        if (!contactList.isEmpty()) {
+            //批量将联系人存入redis
+            redisComponent.addUserContactBatch(userInfo.getUserId(), constantIdList);
+        }
+
+
         //TODO 获取群组
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(userInfo);
         final Long lastHeartBeat = redisComponent.getUserHeartBeat(userInfo.getUserId());
