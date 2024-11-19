@@ -3,6 +3,7 @@ package com.kkk.websocket.netty;
 import com.kkk.entity.dto.TokenUserInfoDto;
 import com.kkk.redis.RedisComponent;
 import com.kkk.utils.StringTools;
+import com.kkk.websocket.ChannelContextUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -31,6 +32,8 @@ public class HandlerWebSocket extends SimpleChannelInboundHandler<TextWebSocketF
     private static final Logger logger = LoggerFactory.getLogger(HandlerWebSocket.class);
     @Resource
     private RedisComponent redisComponent;
+    @Resource
+    private ChannelContextUtils channelContextUtils;
 
     /**
      * 通道就绪后调用，一般用来做初始化
@@ -67,6 +70,13 @@ public class HandlerWebSocket extends SimpleChannelInboundHandler<TextWebSocketF
         //接收心跳
         Channel channel = ctx.channel();
         logger.info("收到消息{}", textWebSocketFrame.text());
+        Attribute<String> attribute = channel.attr(AttributeKey.valueOf(channel.id().toString()));
+        String userId = attribute.get();
+        logger.info("收到userId->{}的消息:{}", userId, textWebSocketFrame.text());
+        redisComponent.saveUserHeartBeat(userId);
+
+        channelContextUtils.send2Group(textWebSocketFrame.text());
+
     }
 
     //用于处理用户自定义的事件  当有用户事件触发时会调用此方法，例如连接超时，异常等。
@@ -85,7 +95,7 @@ public class HandlerWebSocket extends SimpleChannelInboundHandler<TextWebSocketF
                 ctx.channel().close();
                 return;
             }
-
+            channelContextUtils.addContext(tokenUserInfoDto.getUserId(), ctx.channel());
             //redisComponent.saveChannel(tokenUserInfoDto.getUserId(), ctx.channel());
         }
     }
