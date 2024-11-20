@@ -4,19 +4,11 @@ import com.kkk.entity.constants.Constants;
 import com.kkk.entity.dto.MessageSendDto;
 import com.kkk.entity.dto.WsInitData;
 import com.kkk.entity.enums.MessageTypeEnum;
+import com.kkk.entity.enums.UserContactApplyStatusEnum;
 import com.kkk.entity.enums.UserContactTypeEnum;
-import com.kkk.entity.po.ChatSessionUser;
-import com.kkk.entity.po.UserContact;
-import com.kkk.entity.po.UserContactApply;
-import com.kkk.entity.po.UserInfo;
-import com.kkk.entity.query.ChatSessionUserQuery;
-import com.kkk.entity.query.UserContactApplyQuery;
-import com.kkk.entity.query.UserContactQuery;
-import com.kkk.entity.query.UserInfoQuery;
-import com.kkk.mappers.ChatSessionUserMapper;
-import com.kkk.mappers.UserContactApplyMapper;
-import com.kkk.mappers.UserContactMapper;
-import com.kkk.mappers.UserInfoMapper;
+import com.kkk.entity.po.*;
+import com.kkk.entity.query.*;
+import com.kkk.mappers.*;
 import com.kkk.redis.RedisComponent;
 import com.kkk.utils.JsonUtils;
 import com.kkk.utils.StringTools;
@@ -31,9 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 
 /**
@@ -60,6 +54,9 @@ public class ChannelContextUtils {
     private UserContactApplyMapper<UserContactApply, UserContactApplyQuery> userContactApplyMapper;
     @Resource
     private ChatSessionUserMapper<ChatSessionUser, ChatSessionUserQuery> chatSessionUserMapper;
+    @Resource
+    private ChatMessageMapper<ChatMessage, ChatMessageQuery> chatMessageMapper;
+
 
     /**
      * 这段代码执行后可以通过channelId获取用户id
@@ -106,17 +103,36 @@ public class ChannelContextUtils {
         sessionUserQuery.setUserId(userId);
         sessionUserQuery.setOrderBy("last_receive_time desc");
         List<ChatSessionUser> chatSessionList = chatSessionUserMapper.selectList(sessionUserQuery);
-
         WsInitData wsInitData = new WsInitData();
         wsInitData.setChatSessionList(chatSessionList);
 
         /**
          * 2.查询聊天消息
          */
+        UserContactQuery contactQuery = new UserContactQuery();
+        contactQuery.setContactType(UserContactTypeEnum.GROUP.getType());
+        contactQuery.setUserId(userId);
+        List<UserContact> groupContactList = userContactMapper.selectList(contactQuery);
+        List<String> groupIdList = groupContactList.stream().map(item -> item.getContactId()).collect(Collectors.toList());
+        //将自己也加进去
+        groupIdList.add(userId);
+
+        ChatMessageQuery messageQuery = new ChatMessageQuery();
+        messageQuery.setContactIdList(groupIdList);
+        messageQuery.setLastReceiveTime(lastOffTime);
+        List<ChatMessage> chatMessageList = chatMessageMapper.selectList(messageQuery);
+        wsInitData.setChatMessageList(chatMessageList);
+
 
         /**
          * 3.查询好友申请
          */
+        UserContactApplyQuery applyQuery = new UserContactApplyQuery();
+        applyQuery.setReceiveUserId(userId);
+        applyQuery.setLastApplyTimestamp(sourceLastOffTime);
+        applyQuery.setStatus(UserContactApplyStatusEnum.INIT.getStatus());
+        Integer applyCount = userContactApplyMapper.selectCount(applyQuery);
+        wsInitData.setApplyCount(applyCount);
 
         //发送消息
         MessageSendDto messageSendDto = new MessageSendDto();
