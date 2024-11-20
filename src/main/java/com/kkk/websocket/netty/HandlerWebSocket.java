@@ -72,7 +72,7 @@ public class HandlerWebSocket extends SimpleChannelInboundHandler<TextWebSocketF
         logger.info("收到消息{}", textWebSocketFrame.text());
         Attribute<String> attribute = channel.attr(AttributeKey.valueOf(channel.id().toString()));
         String userId = attribute.get();
-        logger.info("收到userId->{}的消息:{}", userId, textWebSocketFrame.text());
+        //logger.info("收到userId->{}的消息:{}", userId, textWebSocketFrame.text());
         redisComponent.saveUserHeartBeat(userId);
 
         channelContextUtils.send2Group(textWebSocketFrame.text());
@@ -81,7 +81,7 @@ public class HandlerWebSocket extends SimpleChannelInboundHandler<TextWebSocketF
 
     //用于处理用户自定义的事件  当有用户事件触发时会调用此方法，例如连接超时，异常等。
     @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
             WebSocketServerProtocolHandler.HandshakeComplete complete = (WebSocketServerProtocolHandler.HandshakeComplete) evt;
             String url = complete.requestUri();
@@ -91,12 +91,15 @@ public class HandlerWebSocket extends SimpleChannelInboundHandler<TextWebSocketF
                 return;
             }
             TokenUserInfoDto tokenUserInfoDto = redisComponent.getTokenUserInfoDto(token);
-            if (tokenUserInfoDto == null) {
+            if (null == tokenUserInfoDto) {
                 ctx.channel().close();
                 return;
             }
+            /**
+             * 用户加入
+             */
             channelContextUtils.addContext(tokenUserInfoDto.getUserId(), ctx.channel());
-            //redisComponent.saveChannel(tokenUserInfoDto.getUserId(), ctx.channel());
+
         }
     }
 

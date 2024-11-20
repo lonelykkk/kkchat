@@ -17,6 +17,7 @@ import com.kkk.mappers.UserContactMapper;
 import com.kkk.mappers.UserInfoBeautyMapper;
 import com.kkk.mappers.UserInfoMapper;
 import com.kkk.redis.RedisComponent;
+import com.kkk.service.UserContactService;
 import com.kkk.service.UserInfoService;
 import com.kkk.utils.CopyTools;
 import com.kkk.utils.StringTools;
@@ -50,6 +51,8 @@ public class UserInfoServiceImpl implements UserInfoService {
     private RedisComponent redisComponent;
     @Resource
     private UserContactMapper<UserContact, UserContactQuery> userContactMapper;
+    @Resource
+    private UserContactService userContactService;
     /*@Resource
     private GroupInfoMapper<GroupInfo, GroupInfoQuery> groupInfoMapper;
 
@@ -65,8 +68,7 @@ public class UserInfoServiceImpl implements UserInfoService {
     @Resource
     private MessageHandler messageHandler;
 
-    @Resource
-    private UserContactService userContactService;*/
+    */
 
     /**
      * 根据条件查询列表
@@ -227,7 +229,7 @@ public class UserInfoServiceImpl implements UserInfoService {
             this.userInfoBeautyMapper.updateById(updateBeauty, beautyAccount.getId());
         }
         //创建机器人好友
-        //userContactService.addContact4Robot(userId);
+        userContactService.addContact4Robot(userId);
     }
 
     @Override

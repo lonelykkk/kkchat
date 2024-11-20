@@ -1,7 +1,9 @@
 package com.kkk.websocket;
 
 import com.kkk.entity.constants.Constants;
+import com.kkk.entity.dto.MessageSendDto;
 import com.kkk.entity.dto.WsInitData;
+import com.kkk.entity.enums.MessageTypeEnum;
 import com.kkk.entity.enums.UserContactTypeEnum;
 import com.kkk.entity.po.ChatSessionUser;
 import com.kkk.entity.po.UserContact;
@@ -16,6 +18,7 @@ import com.kkk.mappers.UserContactApplyMapper;
 import com.kkk.mappers.UserContactMapper;
 import com.kkk.mappers.UserInfoMapper;
 import com.kkk.redis.RedisComponent;
+import com.kkk.utils.JsonUtils;
 import com.kkk.utils.StringTools;
 import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;
@@ -103,6 +106,7 @@ public class ChannelContextUtils {
         sessionUserQuery.setUserId(userId);
         sessionUserQuery.setOrderBy("last_receive_time desc");
         List<ChatSessionUser> chatSessionList = chatSessionUserMapper.selectList(sessionUserQuery);
+
         WsInitData wsInitData = new WsInitData();
         wsInitData.setChatSessionList(chatSessionList);
 
@@ -113,10 +117,27 @@ public class ChannelContextUtils {
         /**
          * 3.查询好友申请
          */
+
+        //发送消息
+        MessageSendDto messageSendDto = new MessageSendDto();
+        messageSendDto.setMessageType(MessageTypeEnum.INIT.getType());
+        messageSendDto.setContactId(userId);
+        messageSendDto.setExtendData(wsInitData);
+        sendMsg(messageSendDto, userId);
     }
 
     //发送消息
-    public static void sendMsg() {
+    public static void sendMsg(MessageSendDto messageSendDto, String receiveId) {
+        if (receiveId == null) {
+            return;
+        }
+        Channel sendChannel = USER_CONTEXT_MAP.get(receiveId);
+        if (sendChannel == null) {
+            return;
+        }
+        messageSendDto.setContactId(messageSendDto.getSendUserId());
+        messageSendDto.setContactName(messageSendDto.getContactName());
+        sendChannel.writeAndFlush(new TextWebSocketFrame(JsonUtils.convertObj2Json(messageSendDto)));
 
     }
 
