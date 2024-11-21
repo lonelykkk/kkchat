@@ -15,6 +15,7 @@ import com.kkk.mappers.ChatSessionUserMapper;
 import com.kkk.mappers.UserContactMapper;
 import com.kkk.service.ChatSessionUserService;
 import com.kkk.utils.StringTools;
+import com.kkk.websocket.MessageHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -32,6 +33,8 @@ public class ChatSessionUserServiceImpl implements ChatSessionUserService {
 
     @Resource
     private UserContactMapper<UserContact, UserContactQuery> userContactMapper;
+    @Resource
+    private MessageHandler messageHandler;
 
     /**
      * 根据条件查询列表
@@ -138,6 +141,41 @@ public class ChatSessionUserServiceImpl implements ChatSessionUserService {
 
     @Override
     public void updateRedundanceInfo(String contactName, String contactId) {
+        if (StringTools.isEmpty(contactName)) {
+            return;
+        }
+        ChatSessionUser updateInfo = new ChatSessionUser();
+        updateInfo.setContactName(contactName);
 
+        ChatSessionUserQuery chatSessionUserQuery = new ChatSessionUserQuery();
+        chatSessionUserQuery.setContactId(contactId);
+        this.chatSessionUserMapper.updateByParam(updateInfo, chatSessionUserQuery);
+
+        UserContactTypeEnum contactTypeEnum = UserContactTypeEnum.getByPrefix(contactId);
+
+        if (contactTypeEnum == UserContactTypeEnum.GROUP) {
+            MessageSendDto messageSendDto = new MessageSendDto();
+            messageSendDto.setContactType(UserContactTypeEnum.getByPrefix(contactId).getType());
+            messageSendDto.setContactId(contactId);
+            messageSendDto.setExtendData(contactName);
+            messageSendDto.setMessageType(MessageTypeEnum.CONTACT_NAME_UPDATE.getType());
+            messageHandler.sendMessage(messageSendDto);
+        } else {
+            UserContactQuery userContactQuery = new UserContactQuery();
+            userContactQuery.setContactType(UserContactTypeEnum.USER.getType());
+            userContactQuery.setContactId(contactId);
+            userContactQuery.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+            List<UserContact> userContactList = userContactMapper.selectList(userContactQuery);
+            for (UserContact userContact : userContactList) {
+                MessageSendDto messageSendDto = new MessageSendDto();
+                messageSendDto.setContactType(contactTypeEnum.getType());
+                messageSendDto.setContactId(userContact.getUserId());
+                messageSendDto.setExtendData(contactName);
+                messageSendDto.setMessageType(MessageTypeEnum.CONTACT_NAME_UPDATE.getType());
+                messageSendDto.setSendUserId(contactId);
+                messageSendDto.setSendUserNickName(contactName);
+                messageHandler.sendMessage(messageSendDto);
+            }
+        }
     }
 }

@@ -240,12 +240,12 @@ public class GroupInfoServiceImpl implements GroupInfoService {
             //发送ws消息
             chatSessionUser.setLastMessage(MessageTypeEnum.GROUP_CREATE.getInitMessage());
             chatSessionUser.setLastReceiveTime(curDate.getTime());
-            //
             chatSessionUser.setMemberCount(1);
-            MessageSendDto messageSend = CopyTools.copy(chatMessage, MessageSendDto.class);
-            messageSend.setExtendData(chatSessionUser);
-            messageSend.setLastMessage(chatSessionUser.getLastMessage());
-            messageHandler.sendMessage(messageSend);
+
+            MessageSendDto messageSendDto = CopyTools.copy(chatMessage, MessageSendDto.class);
+            messageSendDto.setExtendData(chatSessionUser);
+            messageSendDto.setLastMessage(chatSessionUser.getLastMessage());
+            messageHandler.sendMessage(messageSendDto);
             //TODO 发送消息
         } else {
             GroupInfo dbInfo = this.groupInfoMapper.selectByGroupId(groupInfo.getGroupId());

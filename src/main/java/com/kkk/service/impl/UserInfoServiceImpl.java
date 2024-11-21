@@ -17,6 +17,7 @@ import com.kkk.mappers.UserContactMapper;
 import com.kkk.mappers.UserInfoBeautyMapper;
 import com.kkk.mappers.UserInfoMapper;
 import com.kkk.redis.RedisComponent;
+import com.kkk.service.ChatSessionUserService;
 import com.kkk.service.UserContactService;
 import com.kkk.service.UserInfoService;
 import com.kkk.utils.CopyTools;
@@ -53,6 +54,8 @@ public class UserInfoServiceImpl implements UserInfoService {
     private UserContactMapper<UserContact, UserContactQuery> userContactMapper;
     @Resource
     private UserContactService userContactService;
+    @Resource
+    private ChatSessionUserService chatSessionUserService;
     /*@Resource
     private GroupInfoMapper<GroupInfo, GroupInfoQuery> groupInfoMapper;
 
@@ -62,8 +65,7 @@ public class UserInfoServiceImpl implements UserInfoService {
     private RedisComponent redisComponet;
 
 
-    @Resource
-    private ChatSessionUserService chatSessionUserService;
+
 
     @Resource
     private MessageHandler messageHandler;
@@ -308,8 +310,12 @@ public class UserInfoServiceImpl implements UserInfoService {
         if (contactNameUpdate == null) {
             return;
         }
-        //TODO 更新token中的昵称
+        // 更新token中的昵称
+        TokenUserInfoDto tokenUserInfoDto = redisComponent.getTokenUserInfoDtoByUserId(userInfo.getUserId());
+        tokenUserInfoDto.setNickName(contactNameUpdate);
+        redisComponent.saveTokenUserInfoDto(tokenUserInfoDto);
 
+        chatSessionUserService.updateRedundanceInfo(contactNameUpdate,userInfo.getUserId());
     }
 
     @Override

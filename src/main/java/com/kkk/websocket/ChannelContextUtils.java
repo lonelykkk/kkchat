@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 
+
 /**
  * @author lonelykkk
  * @email 2765314967@qq.com
@@ -64,82 +65,87 @@ public class ChannelContextUtils {
      * @param channel 当前连接的通道id
      */
     public void addContext(String userId, Channel channel) {
-        String channelId = channel.id().toString();
-        log.info("channelId->{}", channelId);
-        AttributeKey attributeKey = null;
-        if (!AttributeKey.exists(channelId)) {
-            attributeKey = AttributeKey.newInstance(channelId);
-        } else {
-            attributeKey = AttributeKey.valueOf(channelId);
-        }
-        channel.attr(attributeKey).set(userId);
-
-        List<String> contactIdList = redisComponent.getUserContactList(userId);
-        for (String groupId : contactIdList) {
-            if (groupId.startsWith(UserContactTypeEnum.GROUP.getPrefix())) {
-                add2Group(groupId,channel);
+        try {
+            String channelId = channel.id().toString();
+            log.info("channelId->{}", channelId);
+            AttributeKey attributeKey = null;
+            if (!AttributeKey.exists(channelId)) {
+                attributeKey = AttributeKey.newInstance(channelId);
+            } else {
+                attributeKey = AttributeKey.valueOf(channelId);
             }
+            channel.attr(attributeKey).set(userId);
+
+            List<String> contactIdList = redisComponent.getUserContactList(userId);
+            for (String groupId : contactIdList) {
+                if (groupId.startsWith(UserContactTypeEnum.GROUP.getPrefix())) {
+                    add2Group(groupId,channel);
+                }
+            }
+
+            USER_CONTEXT_MAP.put(userId, channel);
+            redisComponent.saveUserHeartBeat(userId);
+
+            //更新用户最后连接时间
+            UserInfo updateInfo = new UserInfo();
+            updateInfo.setLastLoginTime(new Date());
+            userInfoMapper.updateByUserId(updateInfo, userId);
+
+            //给用户发送消息
+            UserInfo userInfo = userInfoMapper.selectByUserId(userId);
+            Long sourceLastOffTime = userInfo.getLastOffTime();
+            Long lastOffTime = sourceLastOffTime;
+            if (sourceLastOffTime != null && System.currentTimeMillis() - Constants.MILLISECOND_3DAYS_AGO > sourceLastOffTime) {
+                lastOffTime = Constants.MILLISECOND_3DAYS_AGO;
+            }
+            /**
+             * 1.查询会话信息 查询用户所有的会话信息
+             */
+            ChatSessionUserQuery sessionUserQuery = new ChatSessionUserQuery();
+            sessionUserQuery.setUserId(userId);
+            sessionUserQuery.setOrderBy("last_receive_time desc");
+            List<ChatSessionUser> chatSessionList = chatSessionUserMapper.selectList(sessionUserQuery);
+            WsInitData wsInitData = new WsInitData();
+            wsInitData.setChatSessionList(chatSessionList);
+
+            /**
+             * 2.查询聊天消息
+             */
+            UserContactQuery contactQuery = new UserContactQuery();
+            contactQuery.setContactType(UserContactTypeEnum.GROUP.getType());
+            contactQuery.setUserId(userId);
+            List<UserContact> groupContactList = userContactMapper.selectList(contactQuery);
+            List<String> groupIdList = groupContactList.stream().map(item -> item.getContactId()).collect(Collectors.toList());
+            //将自己也加进去
+            groupIdList.add(userId);
+
+            ChatMessageQuery messageQuery = new ChatMessageQuery();
+            messageQuery.setContactIdList(groupIdList);
+            messageQuery.setLastReceiveTime(lastOffTime);
+            List<ChatMessage> chatMessageList = chatMessageMapper.selectList(messageQuery);
+            wsInitData.setChatMessageList(chatMessageList);
+
+
+            /**
+             * 3.查询好友申请
+             */
+            UserContactApplyQuery applyQuery = new UserContactApplyQuery();
+            applyQuery.setReceiveUserId(userId);
+            applyQuery.setLastApplyTimestamp(sourceLastOffTime);
+            applyQuery.setStatus(UserContactApplyStatusEnum.INIT.getStatus());
+            Integer applyCount = userContactApplyMapper.selectCount(applyQuery);
+            wsInitData.setApplyCount(applyCount);
+
+            //发送消息
+            MessageSendDto messageSendDto = new MessageSendDto();
+            messageSendDto.setMessageType(MessageTypeEnum.INIT.getType());
+            messageSendDto.setContactId(userId);
+            messageSendDto.setExtendData(wsInitData);
+            sendMsg(messageSendDto, userId);
+        } catch (Exception e) {
+            log.error("初始化链接失败", e);
         }
 
-        USER_CONTEXT_MAP.put(userId, channel);
-        redisComponent.saveUserHeartBeat(userId);
-
-        //更新用户最后连接时间
-        UserInfo updateInfo = new UserInfo();
-        updateInfo.setLastLoginTime(new Date());
-        userInfoMapper.updateByUserId(updateInfo, userId);
-
-        //给用户发送消息
-        UserInfo userInfo = userInfoMapper.selectByUserId(userId);
-        Long sourceLastOffTime = userInfo.getLastOffTime();
-        Long lastOffTime = sourceLastOffTime;
-        if (sourceLastOffTime != null && System.currentTimeMillis() - Constants.MILLISECOND_3DAYS_AGO > sourceLastOffTime) {
-            lastOffTime = Constants.MILLISECOND_3DAYS_AGO;
-        }
-        /**
-         * 1.查询会话信息 查询用户所有的会话信息
-         */
-        ChatSessionUserQuery sessionUserQuery = new ChatSessionUserQuery();
-        sessionUserQuery.setUserId(userId);
-        sessionUserQuery.setOrderBy("last_receive_time desc");
-        List<ChatSessionUser> chatSessionList = chatSessionUserMapper.selectList(sessionUserQuery);
-        WsInitData wsInitData = new WsInitData();
-        wsInitData.setChatSessionList(chatSessionList);
-
-        /**
-         * 2.查询聊天消息
-         */
-        UserContactQuery contactQuery = new UserContactQuery();
-        contactQuery.setContactType(UserContactTypeEnum.GROUP.getType());
-        contactQuery.setUserId(userId);
-        List<UserContact> groupContactList = userContactMapper.selectList(contactQuery);
-        List<String> groupIdList = groupContactList.stream().map(item -> item.getContactId()).collect(Collectors.toList());
-        //将自己也加进去
-        groupIdList.add(userId);
-
-        ChatMessageQuery messageQuery = new ChatMessageQuery();
-        messageQuery.setContactIdList(groupIdList);
-        messageQuery.setLastReceiveTime(lastOffTime);
-        List<ChatMessage> chatMessageList = chatMessageMapper.selectList(messageQuery);
-        wsInitData.setChatMessageList(chatMessageList);
-
-
-        /**
-         * 3.查询好友申请
-         */
-        UserContactApplyQuery applyQuery = new UserContactApplyQuery();
-        applyQuery.setReceiveUserId(userId);
-        applyQuery.setLastApplyTimestamp(sourceLastOffTime);
-        applyQuery.setStatus(UserContactApplyStatusEnum.INIT.getStatus());
-        Integer applyCount = userContactApplyMapper.selectCount(applyQuery);
-        wsInitData.setApplyCount(applyCount);
-
-        //发送消息
-        MessageSendDto messageSendDto = new MessageSendDto();
-        messageSendDto.setMessageType(MessageTypeEnum.INIT.getType());
-        messageSendDto.setContactId(userId);
-        messageSendDto.setExtendData(wsInitData);
-        sendMsg(messageSendDto, userId);
     }
 
 
@@ -155,11 +161,11 @@ public class ChannelContextUtils {
         group.add(channel);
     }
 
-    public void send2Group(String message) {
+    /*public void send2Group(String message) {
         ChannelGroup group = GROUP_CONTEXT_MAP.get("10000");
         group.writeAndFlush(new TextWebSocketFrame(message));
 
-    }
+    }*/
 
     public void removeContext(Channel channel) {
         Attribute<String> attribute = channel.attr(AttributeKey.valueOf(channel.id().toString()));

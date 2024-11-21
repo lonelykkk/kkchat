@@ -69,13 +69,13 @@ public class HandlerWebSocket extends SimpleChannelInboundHandler<TextWebSocketF
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame textWebSocketFrame) throws Exception {
         //接收心跳
         Channel channel = ctx.channel();
-        logger.info("收到消息{}", textWebSocketFrame.text());
+        //logger.info("收到消息{}", textWebSocketFrame.text());
         Attribute<String> attribute = channel.attr(AttributeKey.valueOf(channel.id().toString()));
         String userId = attribute.get();
         //logger.info("收到userId->{}的消息:{}", userId, textWebSocketFrame.text());
         redisComponent.saveUserHeartBeat(userId);
 
-        channelContextUtils.send2Group(textWebSocketFrame.text());
+//        channelContextUtils.send2Group(textWebSocketFrame.text());
 
     }
 
