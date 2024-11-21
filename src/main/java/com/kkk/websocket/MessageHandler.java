@@ -33,7 +33,7 @@ public class MessageHandler {
         RTopic rTopic = redissonClient.getTopic(MESSAGE_TOPIC);
         rTopic.addListener(MessageSendDto.class, (MessageSendDto, sendDto) -> {
             log.info("收到广播消息：{}", JsonUtils.convertObj2Json(sendDto));
-            //channelContextUtils.sendMsg(sendDto,)
+            channelContextUtils.sendMessage(sendDto);
         });
     }
     public void sendMessage(MessageSendDto sendDto) {

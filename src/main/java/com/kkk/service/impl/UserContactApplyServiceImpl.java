@@ -18,6 +18,7 @@ import com.kkk.mappers.UserInfoMapper;
 import com.kkk.service.UserContactApplyService;
 import com.kkk.service.UserContactService;
 import com.kkk.utils.StringTools;
+import com.kkk.websocket.MessageHandler;
 import jodd.util.ArraysUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +49,8 @@ public class UserContactApplyServiceImpl implements UserContactApplyService {
 
     @Resource
     private UserContactService userContactService;
+    @Resource
+    private MessageHandler messageHandler;
 
     /**
      * 根据条件查询列表
@@ -251,7 +254,7 @@ public class UserContactApplyServiceImpl implements UserContactApplyService {
             messageSend.setMessageType(MessageTypeEnum.CONTACT_APPLY.getType());
             messageSend.setMessageContent(applyInfo);
             messageSend.setContactId(receiveUserId);
-            //messageHandler.sendMessage(messageSend);
+            messageHandler.sendMessage(messageSend);
         }
         return joinType;
     }

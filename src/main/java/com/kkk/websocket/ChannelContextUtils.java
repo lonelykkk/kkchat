@@ -143,21 +143,6 @@ public class ChannelContextUtils {
     }
 
 
-    //发送消息
-    public static void sendMsg(MessageSendDto messageSendDto, String receiveId) {
-        if (receiveId == null) {
-            return;
-        }
-        Channel sendChannel = USER_CONTEXT_MAP.get(receiveId);
-        if (sendChannel == null) {
-            return;
-        }
-        messageSendDto.setContactId(messageSendDto.getSendUserId());
-        messageSendDto.setContactName(messageSendDto.getContactName());
-        sendChannel.writeAndFlush(new TextWebSocketFrame(JsonUtils.convertObj2Json(messageSendDto)));
-
-    }
-
     private void add2Group(String groupId, Channel channel) {
         ChannelGroup group = GROUP_CONTEXT_MAP.get(groupId);
         if (group == null) {
@@ -188,5 +173,66 @@ public class ChannelContextUtils {
         UserInfo userInfo = new UserInfo();
         userInfo.setLastOffTime(System.currentTimeMillis());
         userInfoMapper.updateByUserId(userInfo, userId);
+    }
+
+    public void sendMessage(MessageSendDto messageSendDto) {
+        UserContactTypeEnum contactTypeEnum = UserContactTypeEnum.getByPrefix(messageSendDto.getContactId());
+        switch (contactTypeEnum) {
+            case USER:
+                send2User(messageSendDto);
+                break;
+            case GROUP:
+                sendMsg2Group(messageSendDto);
+        }
+    }
+
+
+    //发送消息给用户
+    private void send2User(MessageSendDto messageSendDto) {
+        String contactId = messageSendDto.getContactId();
+        sendMsg(messageSendDto, contactId);
+        //强制下线
+        if (MessageTypeEnum.FORCE_OFF_LINE.getType().equals(messageSendDto.getMessageType())) {
+            closeContext(contactId);
+        }
+    }
+    //发送消息给群组
+    private void sendMsg2Group(MessageSendDto messageSendDto) {
+        String contactId = messageSendDto.getContactId();
+        if (!StringTools.isEmpty(contactId)) {
+            return;
+        }
+        ChannelGroup channelGroup = GROUP_CONTEXT_MAP.get(messageSendDto.getContactId());
+        if (channelGroup == null) {
+            return;
+        }
+        channelGroup.writeAndFlush(new TextWebSocketFrame(JsonUtils.convertObj2Json(messageSendDto)));
+    }
+
+    public void closeContext(String userId) {
+        if (StringTools.isEmpty(userId)) {
+            return;
+        }
+        redisComponent.cleanUserTokenByUserId(userId);
+        Channel channel = USER_CONTEXT_MAP.get(userId);
+        USER_CONTEXT_MAP.remove(userId);
+        if (channel != null) {
+            channel.close();
+        }
+    }
+
+    //发送消息
+    public static void sendMsg(MessageSendDto messageSendDto, String receiveId) {
+        if (receiveId == null) {
+            return;
+        }
+        Channel sendChannel = USER_CONTEXT_MAP.get(receiveId);
+        if (sendChannel == null) {
+            return;
+        }
+        messageSendDto.setContactId(messageSendDto.getSendUserId());
+        messageSendDto.setContactName(messageSendDto.getContactName());
+        sendChannel.writeAndFlush(new TextWebSocketFrame(JsonUtils.convertObj2Json(messageSendDto)));
+
     }
 }
