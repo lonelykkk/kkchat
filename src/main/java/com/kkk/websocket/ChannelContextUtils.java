@@ -142,6 +142,7 @@ public class ChannelContextUtils {
         sendMsg(messageSendDto, userId);
     }
 
+
     //发送消息
     public static void sendMsg(MessageSendDto messageSendDto, String receiveId) {
         if (receiveId == null) {

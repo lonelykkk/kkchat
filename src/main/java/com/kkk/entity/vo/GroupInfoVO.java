@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * @ClassName GroupInfoVO
- * @Description TODO
+ * @Description 群聊信息
  * @Author lonelykkk https://github.com/lonelykkk
  * @Date 2024/2/6 14:01
  */
