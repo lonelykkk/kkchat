@@ -1,13 +1,16 @@
 package com.kkk.controller;
 
 import com.kkk.entity.constants.Constants;
+import com.kkk.entity.dto.SysSettingDto;
 import com.kkk.entity.dto.TokenUserInfoDto;
 import com.kkk.entity.vo.ResponseVO;
+import com.kkk.entity.vo.SysSettingVO;
 import com.kkk.entity.vo.UserInfoVO;
 import com.kkk.exception.BusinessException;
 import com.kkk.redis.RedisComponent;
 import com.kkk.redis.RedisUtils;
 import com.kkk.service.UserInfoService;
+import com.kkk.utils.CopyTools;
 import com.wf.captcha.ArithmeticCaptcha;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -111,6 +114,8 @@ public class AccountController extends ABaseController {
 
     @GetMapping("/getSysSetting")
     public ResponseVO login() {
-        return getSuccessResponseVO(redisComponent.getSysSetting());
+        //return getSuccessResponseVO(redisComponent.getSysSetting());
+        SysSettingDto sysSettingDto = redisComponent.getSysSetting();
+        return getSuccessResponseVO(CopyTools.copy(sysSettingDto, SysSettingVO.class));
     }
 }

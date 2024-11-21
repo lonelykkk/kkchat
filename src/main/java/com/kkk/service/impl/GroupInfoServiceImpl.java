@@ -12,10 +12,13 @@ import com.kkk.entity.vo.PaginationResultVO;
 import com.kkk.exception.BusinessException;
 import com.kkk.mappers.*;
 import com.kkk.redis.RedisComponent;
+import com.kkk.service.ChatSessionUserService;
 import com.kkk.service.GroupInfoService;
 import com.kkk.service.UserContactService;
 import com.kkk.utils.CopyTools;
 import com.kkk.utils.StringTools;
+import com.kkk.websocket.ChannelContextUtils;
+import com.kkk.websocket.MessageHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -45,13 +48,15 @@ public class GroupInfoServiceImpl implements GroupInfoService {
     private GroupInfoMapper<GroupInfo, GroupInfoQuery> groupInfoMapper;
 
     @Resource
-    private RedisComponent redisComponet;
+    private RedisComponent redisComponent;
 
     @Resource
     private UserContactMapper<UserContact, UserContactQuery> userContactMapper;
 
     @Resource
     private UserInfoMapper<UserInfo, UserInfoQuery> userInfoMapper;
+    @Resource
+    private ChatMessageMapper<ChatMessage, ChatMessageQuery> chatMessageMapper;
 
     @Resource
     private UserContactService userContactService;
@@ -59,6 +64,14 @@ public class GroupInfoServiceImpl implements GroupInfoService {
     @Resource
     @Lazy
     private GroupInfoService groupInfoService;
+    @Resource
+    private ChatSessionMapper<ChatSession, ChatSessionQuery> chatSessionMapper;
+    @Resource
+    private ChatSessionUserService chatSessionUserService;
+    @Resource
+    private ChannelContextUtils channelContextUtils;
+    @Resource
+    private MessageHandler messageHandler;
 
     /**
      * 根据条件查询列表
@@ -171,7 +184,7 @@ public class GroupInfoServiceImpl implements GroupInfoService {
             GroupInfoQuery groupInfoQuery = new GroupInfoQuery();
             groupInfoQuery.setGroupOwnerId(groupInfo.getGroupOwnerId());
             Integer count = groupInfoMapper.selectCount(groupInfoQuery);
-            SysSettingDto sysSetting = redisComponet.getSysSetting();
+            SysSettingDto sysSetting = redisComponent.getSysSetting();
             if (count >= sysSetting.getMaxGroupCount()) {
                 throw new BusinessException("最多支持创建" + sysSetting.getMaxGroupCount() + "个群聊");
             }
@@ -191,35 +204,78 @@ public class GroupInfoServiceImpl implements GroupInfoService {
             userContact.setCreateTime(curDate);
             userContact.setLastUpdateTime(curDate);
             userContactMapper.insert(userContact);
+            // 创建会话
+            String sessionId = StringTools.getChatSessionId4Group(groupInfo.getGroupId());
+            ChatSession chatSession = new ChatSession();
+            chatSession.setSessionId(sessionId);
+            chatSession.setLastMessage(MessageTypeEnum.GROUP_CREATE.getInitMessage());
+            chatSession.setLastReceiveTime(curDate.getTime());
+            this.chatSessionMapper.insert(chatSession);
 
-            //TODO 创建会话
+            //创建群主会话
+            ChatSessionUser chatSessionUser = new ChatSessionUser();
+            chatSessionUser.setUserId(groupInfo.getGroupOwnerId());
+            chatSessionUser.setContactId(groupInfo.getGroupId());
+            chatSessionUser.setContactName(groupInfo.getGroupName());
+            chatSessionUser.setSessionId(sessionId);
+            this.chatSessionUserService.add(chatSessionUser);
+
+            //添加为联系人
+            redisComponent.addUserContact(groupInfo.getGroupOwnerId(), groupInfo.getGroupId());
+            //将联系人通道添加到群组通道
+            channelContextUtils.addUser2Group(groupInfo.getGroupOwnerId(), groupInfo.getGroupId());
+            //创建消息
+            ChatMessage chatMessage = new ChatMessage();
+            chatMessage.setSessionId(sessionId);
+            chatMessage.setMessageType(MessageTypeEnum.GROUP_CREATE.getType());
+            chatMessage.setMessageContent(MessageTypeEnum.GROUP_CREATE.getInitMessage());
+            chatMessage.setSendUserId(null);
+            chatMessage.setSendUserNickName(null);
+            chatMessage.setSendTime(curDate.getTime());
+            chatMessage.setContactId(groupInfo.getGroupId());
+            chatMessage.setContactType(UserContactTypeEnum.GROUP.getType());
+            chatMessage.setStatus(MessageStatusEnum.SENDED.getStatus());
+            chatMessageMapper.insert(chatMessage);
+
+            //发送ws消息
+            chatSessionUser.setLastMessage(MessageTypeEnum.GROUP_CREATE.getInitMessage());
+            chatSessionUser.setLastReceiveTime(curDate.getTime());
+            //
+            chatSessionUser.setMemberCount(1);
+            MessageSendDto messageSend = CopyTools.copy(chatMessage, MessageSendDto.class);
+            messageSend.setExtendData(chatSessionUser);
+            messageSend.setLastMessage(chatSessionUser.getLastMessage());
+            messageHandler.sendMessage(messageSend);
             //TODO 发送消息
         } else {
-            final GroupInfo dbInfo = groupInfoMapper.selectByGroupId(groupInfo.getGroupId());
+            GroupInfo dbInfo = this.groupInfoMapper.selectByGroupId(groupInfo.getGroupId());
             if (!dbInfo.getGroupOwnerId().equals(groupInfo.getGroupOwnerId())) {
                 throw new BusinessException(ResponseCodeEnum.CODE_600);
             }
-            groupInfoMapper.updateByGroupId(groupInfo, groupInfo.getGroupId());
+            this.groupInfoMapper.updateByGroupId(groupInfo, groupInfo.getGroupId());
 
-            //TODO 更新相关表冗余信息
-            //TODO 修改群昵称发送ws消息
-            if (avatarCover == null) {
-                return;
+            //更新相关表冗余的字段
+            String contactNameUpdate = null;
+            if (!dbInfo.getGroupName().equals(groupInfo.getGroupName())) {
+                contactNameUpdate = groupInfo.getGroupName();
             }
-            String baseFolder = appConfig.getProjectFolder() + Constants.FILE_FOLDER_FILE;
-            File targetFileFolder = new File(baseFolder + Constants.FILE_FOLDER_AVATAR_NAME);
-            if (!targetFileFolder.exists()) {
-                targetFileFolder.mkdirs();
-            }
-            String filePath = targetFileFolder.getPath() + "/" + groupInfo.getGroupId() + Constants.IMAGE_SUFFIX;
-            try {
-                avatarFile.transferTo(new File(filePath));
-                avatarCover.transferTo(new File(filePath + Constants.COVER_IMAGE_SUFFIX));
-            } catch (IOException e) {
-                logger.error("头像上传失败", e);
-                throw new BusinessException("头像上传失败");
-            }
-
+            chatSessionUserService.updateRedundanceInfo(contactNameUpdate, groupInfo.getGroupId());
+        }
+        if (null == avatarFile) {
+            return;
+        }
+        String baseFolder = appConfig.getProjectFolder() + Constants.FILE_FOLDER_FILE;
+        File targetFileFolder = new File(baseFolder + Constants.FILE_FOLDER_AVATAR_NAME);
+        if (!targetFileFolder.exists()) {
+            targetFileFolder.mkdirs();
+        }
+        String filePath = targetFileFolder.getPath() + "/" + groupInfo.getGroupId() + Constants.IMAGE_SUFFIX;
+        try {
+            avatarFile.transferTo(new File(filePath));
+            avatarCover.transferTo(new File(filePath + Constants.COVER_IMAGE_SUFFIX));
+        } catch (IOException e) {
+            logger.error("头像上传失败", e);
+            throw new BusinessException("头像上传失败");
         }
     }
 

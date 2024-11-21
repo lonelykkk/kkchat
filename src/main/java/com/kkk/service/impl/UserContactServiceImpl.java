@@ -13,6 +13,7 @@ import com.kkk.redis.RedisComponent;
 import com.kkk.service.UserContactService;
 import com.kkk.utils.CopyTools;
 import com.kkk.utils.StringTools;
+import com.kkk.websocket.ChannelContextUtils;
 import com.kkk.websocket.MessageHandler;
 import com.mysql.cj.protocol.x.XMessageHeader;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,8 @@ public class UserContactServiceImpl implements UserContactService {
     private ChatMessageMapper<ChatMessage, ChatMessageQuery> chatMessageMapper;
     @Resource
     private MessageHandler messageHandler;
+    @Resource
+    private ChannelContextUtils channelContextUtils;
 
 
 
@@ -307,7 +310,53 @@ public class UserContactServiceImpl implements UserContactService {
             messageSendDto.setExtendData(contactUser);
             messageHandler.sendMessage(messageSendDto);
         } else {
+            //加入群组
+            ChatSessionUser chatSessionUser = new ChatSessionUser();
+            chatSessionUser.setUserId(applyUserId);
+            chatSessionUser.setContactId(contactId);
+            GroupInfo groupInfo = this.groupInfoMapper.selectByGroupId(contactId);
+            chatSessionUser.setContactName(groupInfo.getGroupName());
+            chatSessionUser.setSessionId(sessionId);
+            this.chatSessionUserMapper.insertOrUpdate(chatSessionUser);
+            //将群组加入到用户的联系人列表
+            redisComponent.addUserContact(applyUserId, groupInfo.getGroupId());
 
+            channelContextUtils.addUser2Group(applyUserId, groupInfo.getGroupId());
+
+            UserInfo applyUserInfo = this.userInfoMapper.selectByUserId(applyUserId);
+            String sendMessage = String.format(MessageTypeEnum.ADD_GROUP.getInitMessage(), applyUserInfo.getNickName());
+
+            //增加session信息
+            ChatSession chatSession = new ChatSession();
+            chatSession.setSessionId(sessionId);
+            chatSession.setLastReceiveTime(curDate.getTime());
+            chatSession.setLastMessage(sendMessage);
+            this.chatSessionMapper.insertOrUpdate(chatSession);
+            //增加聊天消息
+            ChatMessage chatMessage = new ChatMessage();
+            chatMessage.setSessionId(sessionId);
+            chatMessage.setMessageType(MessageTypeEnum.ADD_GROUP.getType());
+            chatMessage.setMessageContent(sendMessage);
+            chatMessage.setSendUserId(null);
+            chatMessage.setSendUserNickName(null);
+            chatMessage.setSendTime(curDate.getTime());
+            chatMessage.setContactId(contactId);
+            chatMessage.setContactType(UserContactTypeEnum.GROUP.getType());
+            chatMessage.setStatus(MessageStatusEnum.SENDED.getStatus());
+            chatMessageMapper.insert(chatMessage);
+
+            //发送群消息
+            MessageSendDto messageSend = CopyTools.copy(chatMessage, MessageSendDto.class);
+            messageSend.setContactId(groupInfo.getGroupId());
+
+            //获取群人数量
+            UserContactQuery userContactQuery = new UserContactQuery();
+            userContactQuery.setContactId(contactId);
+            userContactQuery.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+            Integer memberCount = this.userContactMapper.selectCount(userContactQuery);
+            messageSend.setMemberCount(memberCount);
+            messageSend.setContactName(groupInfo.getGroupName());
+            messageHandler.sendMessage(messageSend);
         }
     }
 

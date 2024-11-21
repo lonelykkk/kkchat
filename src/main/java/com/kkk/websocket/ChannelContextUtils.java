@@ -143,7 +143,7 @@ public class ChannelContextUtils {
     }
 
 
-    private void add2Group(String groupId, Channel channel) {
+    public void add2Group(String groupId, Channel channel) {
         ChannelGroup group = GROUP_CONTEXT_MAP.get(groupId);
         if (group == null) {
             group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
@@ -188,7 +188,7 @@ public class ChannelContextUtils {
 
 
     //发送消息给用户
-    private void send2User(MessageSendDto messageSendDto) {
+    public void send2User(MessageSendDto messageSendDto) {
         String contactId = messageSendDto.getContactId();
         sendMsg(messageSendDto, contactId);
         //强制下线
@@ -197,7 +197,7 @@ public class ChannelContextUtils {
         }
     }
     //发送消息给群组
-    private void sendMsg2Group(MessageSendDto messageSendDto) {
+    public void sendMsg2Group(MessageSendDto messageSendDto) {
         String contactId = messageSendDto.getContactId();
         if (!StringTools.isEmpty(contactId)) {
             return;
@@ -243,5 +243,10 @@ public class ChannelContextUtils {
         }
         sendChannel.writeAndFlush(new TextWebSocketFrame(JsonUtils.convertObj2Json(messageSendDto)));
 
+    }
+
+    public void addUser2Group(String userId, String groupId) {
+        Channel channel = USER_CONTEXT_MAP.get(userId);
+        add2Group(groupId, channel);
     }
 }
