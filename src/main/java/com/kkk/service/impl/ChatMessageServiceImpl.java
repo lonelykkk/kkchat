@@ -165,6 +165,19 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public MessageSendDto saveMessage(ChatMessage chatMessage, TokenUserInfoDto tokenUserInfoDto) {
+        //不是机器人回复，判断好友状态
+        if (!Constants.ROBOT_UID.equals(tokenUserInfoDto.getUserId())) {
+            List<String> contactList = redisComponent.getUserContactList(tokenUserInfoDto.getUserId());
+            if (!contactList.contains(chatMessage.getContactId())) {
+                UserContactTypeEnum userContactTypeEnum = UserContactTypeEnum.getByPrefix(chatMessage.getContactId());
+                if (userContactTypeEnum == UserContactTypeEnum.USER) {
+                    throw new BusinessException(ResponseCodeEnum.CODE_902);
+                } else {
+                    throw new BusinessException(ResponseCodeEnum.CODE_903);
+                }
+            }
+        }
+
         return null;
     }
 
