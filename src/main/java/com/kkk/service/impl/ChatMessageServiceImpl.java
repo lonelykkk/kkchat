@@ -177,7 +177,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             List<String> contactList = redisComponent.getUserContactList(tokenUserInfoDto.getUserId());
             if (!contactList.contains(chatMessage.getContactId())) {
                 UserContactTypeEnum userContactTypeEnum = UserContactTypeEnum.getByPrefix(chatMessage.getContactId());
-                if (userContactTypeEnum == UserContactTypeEnum.USER) {
+                if (UserContactTypeEnum.USER == userContactTypeEnum) {
                     throw new BusinessException(ResponseCodeEnum.CODE_902);
                 } else {
                     throw new BusinessException(ResponseCodeEnum.CODE_903);
@@ -185,54 +185,46 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             }
         }
         String sessionId = null;
-        Long curTime = System.currentTimeMillis();
         String sendUserId = tokenUserInfoDto.getUserId();
         String contactId = chatMessage.getContactId();
+        Long curTime = System.currentTimeMillis();
         UserContactTypeEnum contactTypeEnum = UserContactTypeEnum.getByPrefix(contactId);
-
-        /**
-         * 判断是群聊还是单聊
-         */
-        if (UserContactTypeEnum.USER == contactTypeEnum) {
-            sessionId = StringTools.getChatSessionId4User(new String[]{sendUserId, contactId});
-        } else {
-            sessionId = StringTools.getChatSessionId4Group(contactId);
-        }
-        chatMessage.setSessionId(sessionId); //插入会话id
-
-        chatMessage.setSendTime(curTime); //插入消息时间
-
         MessageTypeEnum messageTypeEnum = MessageTypeEnum.getByType(chatMessage.getMessageType());
-        if (null == messageTypeEnum || !ArrayUtils.contains(new Integer[]{MessageTypeEnum.CHAT.getType(), MessageTypeEnum.MEDIA_CHAT.getType()}, chatMessage.getMessageType())) {
-            throw new BusinessException(ResponseCodeEnum.CODE_600);
-        }
-        Integer status = MessageTypeEnum.MEDIA_CHAT == messageTypeEnum ? MessageStatusEnum.SENDING.getStatus() : MessageStatusEnum.SENDED.getStatus();
-        chatMessage.setStatus(status);
-
-        String messageContent = StringTools.cleanHtmlTag(chatMessage.getMessageContent());
+        String lastMessage = chatMessage.getMessageContent();
+        String messageContent = StringTools.resetMessageContent(chatMessage.getMessageContent());
         chatMessage.setMessageContent(messageContent);
-
-        //更新会话
-        ChatSession chatSession = new ChatSession();
-        chatSession.setLastMessage(messageContent);
-        if (UserContactTypeEnum.GROUP == contactTypeEnum && !MessageTypeEnum.GROUP_CREATE.getType().equals(messageTypeEnum.getType())) {
-            chatSession.setLastMessage(tokenUserInfoDto.getNickName() + "：" + messageContent);
+        Integer status = MessageTypeEnum.MEDIA_CHAT == messageTypeEnum ? MessageStatusEnum.SENDING.getStatus() : MessageStatusEnum.SENDED.getStatus();
+        if (ArraysUtil.contains(new Integer[]{
+                MessageTypeEnum.CHAT.getType(),
+                MessageTypeEnum.GROUP_CREATE.getType(),
+                MessageTypeEnum.ADD_FRIEND.getType(),
+                MessageTypeEnum.MEDIA_CHAT.getType()
+        }, messageTypeEnum.getType())) {
+            if (UserContactTypeEnum.USER == contactTypeEnum) {
+                sessionId = StringTools.getChatSessionId4User(new String[]{sendUserId, contactId});
+            } else {
+                sessionId = StringTools.getChatSessionId4Group(contactId);
+            }
+            //更新会话消息
+            ChatSession chatSession = new ChatSession();
+            chatSession.setLastMessage(messageContent);
+            if (UserContactTypeEnum.GROUP == contactTypeEnum && !MessageTypeEnum.GROUP_CREATE.getType().equals(messageTypeEnum.getType())) {
+                chatSession.setLastMessage(tokenUserInfoDto.getNickName() + "：" + messageContent);
+            }
+            lastMessage = chatSession.getLastMessage();
+            //如果是媒体文件
+            chatSession.setLastReceiveTime(curTime);
+            chatSessionMapper.updateBySessionId(chatSession, sessionId);
+            //记录消息消息表
+            chatMessage.setSessionId(sessionId);
+            chatMessage.setSendUserId(sendUserId);
+            chatMessage.setSendUserNickName(tokenUserInfoDto.getNickName());
+            chatMessage.setSendTime(curTime);
+            chatMessage.setContactType(contactTypeEnum.getType());
+            chatMessage.setStatus(status);
+            chatMessageMapper.insert(chatMessage);
         }
-        //lastMessage = chatSession.getLastMessage();
-        //如果是媒体文件
-        chatSession.setLastReceiveTime(curTime);
-        chatSessionMapper.updateBySessionId(chatSession, sessionId);
-
-        //记录消息消息表
-        chatMessage.setSessionId(sessionId);
-        chatMessage.setSendUserId(sendUserId);
-        chatMessage.setSendUserNickName(tokenUserInfoDto.getNickName());
-        chatMessage.setSendTime(curTime);
-        chatMessage.setContactType(contactTypeEnum.getType());
-        chatMessage.setStatus(status);
-        chatMessageMapper.insert(chatMessage);
-        MessageSendDto messageSendDto = CopyTools.copy(chatMessage, MessageSendDto.class);
-
+        MessageSendDto messageSend = CopyTools.copy(chatMessage, MessageSendDto.class);
         if (Constants.ROBOT_UID.equals(contactId)) {
             SysSettingDto sysSettingDto = redisComponent.getSysSetting();
             TokenUserInfoDto robot = new TokenUserInfoDto();
@@ -243,14 +235,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             //这里可以对接Ai 根据输入的信息做出回答
             String answer = remoteClient.getAiChat(chatMessage.getMessageContent());
             robotChatMessage.setMessageContent(answer);
-
-            robotChatMessage.setMessageType(MessageTypeEnum.CHAT.getType());
             saveMessage(robotChatMessage, robot);
         } else {
-            messageHandler.sendMessage(messageSendDto);
+            messageHandler.sendMessage(messageSend);
         }
-
-        return messageSendDto;
+        return messageSend;
     }
 
     @Override
@@ -314,6 +303,40 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public File downloadFile(TokenUserInfoDto userInfoDto, Long messageId, Boolean cover) {
-        return null;
+        ChatMessage message = chatMessageMapper.selectByMessageId(messageId);
+        String contactId = message.getContactId();
+        UserContactTypeEnum contactTypeEnum = UserContactTypeEnum.getByPrefix(contactId);
+        if (UserContactTypeEnum.USER.getType().equals(contactTypeEnum) && !userInfoDto.getUserId().equals(message.getContactId())) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        if (UserContactTypeEnum.GROUP.getType().equals(contactTypeEnum)) {
+            UserContactQuery userContactQuery = new UserContactQuery();
+            userContactQuery.setUserId(userInfoDto.getUserId());
+            userContactQuery.setContactType(UserContactTypeEnum.GROUP.getType());
+            userContactQuery.setContactId(contactId);
+            userContactQuery.setStatus(UserContactStatusEnum.FRIEND.getStatus());
+            Integer contactCount = userContactMapper.selectCount(userContactQuery);
+            if (contactCount == 0) {
+                throw new BusinessException(ResponseCodeEnum.CODE_600);
+            }
+        }
+        String month = DateUtil.format(new Date(message.getSendTime()), DateTimePatternEnum.YYYYMM.getPattern());
+        File folder = new File(appConfig.getProjectFolder() + Constants.FILE_FOLDER_FILE + month);
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+        String fileName = message.getFileName();
+        String fileExtName = StringTools.getFileSuffix(fileName);
+        String fileRealName = messageId + fileExtName;
+
+        if (cover != null && cover) {
+            fileRealName = fileRealName + Constants.COVER_IMAGE_SUFFIX;
+        }
+        File file = new File(folder.getPath() + "/" + fileRealName);
+        if (!file.exists()) {
+            logger.info("文件不存在");
+            throw new BusinessException(ResponseCodeEnum.CODE_602);
+        }
+        return file;
     }
 }
