@@ -1,5 +1,6 @@
 package com.kkk.service.impl;
 
+import com.kkk.client.RemoteClient;
 import com.kkk.entity.config.AppConfig;
 import com.kkk.entity.constants.Constants;
 import com.kkk.entity.dto.MessageSendDto;
@@ -23,7 +24,9 @@ import com.kkk.service.ChatMessageService;
 import com.kkk.utils.CopyTools;
 import com.kkk.utils.DateUtil;
 import com.kkk.utils.StringTools;
+import com.kkk.websocket.MessageHandler;
 import jodd.util.ArraysUtil;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -44,10 +47,14 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private static final Logger logger = LoggerFactory.getLogger(ChatMessageServiceImpl.class);
 
     @Resource
+    private RemoteClient remoteClient;
+    @Resource
     private ChatMessageMapper<ChatMessage, ChatMessageQuery> chatMessageMapper;
 
     @Resource
     private ChatSessionMapper<ChatSession, ChatSessionQuery> chatSessionMapper;
+    @Resource
+    private MessageHandler messageHandler;
 
 
     @Resource
@@ -177,8 +184,73 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 }
             }
         }
+        String sessionId = null;
+        Long curTime = System.currentTimeMillis();
+        String sendUserId = tokenUserInfoDto.getUserId();
+        String contactId = chatMessage.getContactId();
+        UserContactTypeEnum contactTypeEnum = UserContactTypeEnum.getByPrefix(contactId);
 
-        return null;
+        /**
+         * 判断是群聊还是单聊
+         */
+        if (UserContactTypeEnum.USER == contactTypeEnum) {
+            sessionId = StringTools.getChatSessionId4User(new String[]{sendUserId, contactId});
+        } else {
+            sessionId = StringTools.getChatSessionId4Group(contactId);
+        }
+        chatMessage.setSessionId(sessionId); //插入会话id
+
+        chatMessage.setSendTime(curTime); //插入消息时间
+
+        MessageTypeEnum messageTypeEnum = MessageTypeEnum.getByType(chatMessage.getMessageType());
+        if (null == messageTypeEnum || !ArrayUtils.contains(new Integer[]{MessageTypeEnum.CHAT.getType(), MessageTypeEnum.MEDIA_CHAT.getType()}, chatMessage.getMessageType())) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        Integer status = MessageTypeEnum.MEDIA_CHAT == messageTypeEnum ? MessageStatusEnum.SENDING.getStatus() : MessageStatusEnum.SENDED.getStatus();
+        chatMessage.setStatus(status);
+
+        String messageContent = StringTools.cleanHtmlTag(chatMessage.getMessageContent());
+        chatMessage.setMessageContent(messageContent);
+
+        //更新会话
+        ChatSession chatSession = new ChatSession();
+        chatSession.setLastMessage(messageContent);
+        if (UserContactTypeEnum.GROUP == contactTypeEnum && !MessageTypeEnum.GROUP_CREATE.getType().equals(messageTypeEnum.getType())) {
+            chatSession.setLastMessage(tokenUserInfoDto.getNickName() + "：" + messageContent);
+        }
+        //lastMessage = chatSession.getLastMessage();
+        //如果是媒体文件
+        chatSession.setLastReceiveTime(curTime);
+        chatSessionMapper.updateBySessionId(chatSession, sessionId);
+
+        //记录消息消息表
+        chatMessage.setSessionId(sessionId);
+        chatMessage.setSendUserId(sendUserId);
+        chatMessage.setSendUserNickName(tokenUserInfoDto.getNickName());
+        chatMessage.setSendTime(curTime);
+        chatMessage.setContactType(contactTypeEnum.getType());
+        chatMessage.setStatus(status);
+        chatMessageMapper.insert(chatMessage);
+        MessageSendDto messageSendDto = CopyTools.copy(chatMessage, MessageSendDto.class);
+
+        if (Constants.ROBOT_UID.equals(contactId)) {
+            SysSettingDto sysSettingDto = redisComponent.getSysSetting();
+            TokenUserInfoDto robot = new TokenUserInfoDto();
+            robot.setUserId(sysSettingDto.getRobotUid());
+            robot.setNickName(sysSettingDto.getRobotNickName());
+            ChatMessage robotChatMessage = new ChatMessage();
+            robotChatMessage.setContactId(sendUserId);
+            //这里可以对接Ai 根据输入的信息做出回答
+            String answer = remoteClient.getAiChat(chatMessage.getMessageContent());
+            robotChatMessage.setMessageContent(answer);
+
+            robotChatMessage.setMessageType(MessageTypeEnum.CHAT.getType());
+            saveMessage(robotChatMessage, robot);
+        } else {
+            messageHandler.sendMessage(messageSendDto);
+        }
+
+        return messageSendDto;
     }
 
     @Override
