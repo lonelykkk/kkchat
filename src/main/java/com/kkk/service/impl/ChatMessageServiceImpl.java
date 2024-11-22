@@ -255,7 +255,61 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public void saveMessageFile(String userId, Long messageId, MultipartFile file, MultipartFile cover) {
+        ChatMessage chatMessage = chatMessageMapper.selectByMessageId(messageId);
+        if (chatMessage == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        if (chatMessage.getSendUserId().equals(userId)) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        SysSettingDto sysSettingDto = redisComponent.getSysSetting();
+        String fileSuffix = StringTools.getFileSuffix(file.getOriginalFilename());
+        //进行文件校验
+        if (!StringTools.isEmpty(fileSuffix) && ArraysUtil.contains(Constants.IMAGE_SUFFIX_LIST, fileSuffix.toLowerCase())
+                && file.getSize() > Constants.FILE_SIZE_MB * sysSettingDto.getMaxImageSize()) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        } else if (!StringTools.isEmpty(fileSuffix) && ArraysUtil.contains(Constants.VIDEO_SUFFIX_LIST, fileSuffix.toLowerCase())
+                && file.getSize() > Constants.FILE_SIZE_MB * sysSettingDto.getMaxVideoSize()) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        } else if (!StringTools.isEmpty(fileSuffix) &&
+                !ArraysUtil.contains(Constants.VIDEO_SUFFIX_LIST, fileSuffix.toLowerCase()) &&
+                !ArraysUtil.contains(Constants.IMAGE_SUFFIX_LIST, fileSuffix.toLowerCase()) &&
+                file.getSize() > Constants.FILE_SIZE_MB * sysSettingDto.getMaxFileSize()) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
 
+        String fileName = file.getOriginalFilename();
+        String fileExtName = StringTools.getFileSuffix(fileName);
+        String fileRealName = messageId + fileExtName;
+        String month = DateUtil.format(new Date(chatMessage.getSendTime()), DateTimePatternEnum.YYYYMM.getPattern());
+        File folder = new File(appConfig.getProjectFolder() + Constants.FILE_FOLDER_FILE + month);
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        File uploadFile = new File(folder.getPath() + "/" + fileRealName);
+        try {
+            file.transferTo(uploadFile);
+            if (cover != null) {
+                cover.transferTo(new File(uploadFile.getPath() + Constants.COVER_IMAGE_SUFFIX));
+            }
+        } catch (Exception e) {
+            logger.error("上传文件失败", e);
+            throw new BusinessException("文件上传失败");
+        }
+
+        ChatMessage updateInfo = new ChatMessage();
+        updateInfo.setStatus(MessageStatusEnum.SENDED.getStatus());
+        ChatMessageQuery messageQuery = new ChatMessageQuery();
+        messageQuery.setMessageId(messageId);
+        chatMessageMapper.updateByParam(updateInfo, messageQuery);
+
+        MessageSendDto messageSend = new MessageSendDto();
+        messageSend.setStatus(MessageStatusEnum.SENDED.getStatus());
+        messageSend.setMessageId(chatMessage.getMessageId());
+        messageSend.setMessageType(MessageTypeEnum.FILE_UPLOAD.getType());
+        messageSend.setContactId(chatMessage.getContactId());
+        messageHandler.sendMessage(messageSend);
     }
 
     @Override
