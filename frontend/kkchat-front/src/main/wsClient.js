@@ -6,7 +6,7 @@ import {
     updateGroupName, delChatSession, selectUserSessionByContactId
 } from "./db/ChatSessionUserModel"
 import { updateContactNoReadCount } from "./db/UserSetting"
-import { getWindow } from "./windowProxy";
+import { getWindow } from "./windowProxy"; 
 import store from "./store"
 //ws相关
 let ws = null
