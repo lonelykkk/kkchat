@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 @EnableScheduling
 public class kkkApplication {
-    public static void main(String[] args) {
+    public static void main(String[] args) { 
         SpringApplication.run(kkkApplication.class, args);
     }
 }
