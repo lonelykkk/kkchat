@@ -1,5 +1,6 @@
 package com.kkk.controller;
 
+import com.kkk.annotation.GlobalInterceptor;
 import com.kkk.entity.constants.Constants;
 import com.kkk.entity.dto.SysSettingDto;
 import com.kkk.entity.dto.TokenUserInfoDto;
@@ -113,8 +114,8 @@ public class AccountController extends ABaseController {
     }
 
     @GetMapping("/getSysSetting")
+    @GlobalInterceptor
     public ResponseVO login() {
-        //return getSuccessResponseVO(redisComponent.getSysSetting());
         SysSettingDto sysSettingDto = redisComponent.getSysSetting();
         return getSuccessResponseVO(CopyTools.copy(sysSettingDto, SysSettingVO.class));
     }

@@ -235,6 +235,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             //这里可以对接Ai 根据输入的信息做出回答
             String answer = remoteClient.getAiChat(chatMessage.getMessageContent());
             robotChatMessage.setMessageContent(answer);
+            robotChatMessage.setMessageType(MessageTypeEnum.CHAT.getType());
             saveMessage(robotChatMessage, robot);
         } else {
             messageHandler.sendMessage(messageSend);
