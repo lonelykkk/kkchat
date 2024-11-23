@@ -1,0 +1,132 @@
+::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgb(239, 239, 239);
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #bfbfbf;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #bfbfbf;
+}
+
+::-webkit-scrollbar-corner {
+    background: #bfbfbf;
+}
+
+:root {
+    --text1: #9499A0;
+    --text2: #61666d;
+    --icon: #9499a0;
+    --text_link: #409eff;
+    --blue: #007fff;
+    --tag: #7BCDEF;
+    --pink: #FF6699;
+}
+
+body {
+    margin: 0px;
+    padding: 0px;
+    color: #636d7e;
+    font-size: 14px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.a-link {
+    cursor: pointer;
+    text-decoration: none;
+    color: #436895;
+}
+
+
+
+.top-panel {
+    .el-card__body {
+        padding: 15px;
+    }
+
+    .el-form-item {
+        margin-bottom: 0px;
+    }
+
+    .second-row {
+        margin-top: 5px;
+    }
+}
+
+.row-op-panel {
+    a {
+        text-decoration: none;
+        color: var(--blue);
+        margin-right: 8px;
+    }
+
+    a:last-child {
+        margin-right: 0px;
+    }
+
+    .not-allow {
+        cursor: not-allowed;
+        color: #ddd;
+        text-decoration: none;
+    }
+}
+
+.table-data-card {
+    margin-top: 10px;
+
+    .el-card__body {
+        padding: 10px;
+    }
+}
+
+.el-form-item__content {
+    width: 100%;
+
+    .el-select {
+        width: 100%;
+    }
+}
+
+.no-data {
+    color: #bfbfbf;
+    text-align: center;
+    padding: 5px 0px;
+}
+
+.drag {
+    /* 设置该属性表明这是可拖拽区域，用来移动窗口 */
+    -webkit-app-region: drag;
+}
+
+.no-drag {
+    -webkit-app-region: no-drag;
+}
+
+//去除 el-dropdown 边框
+.el-dropdown,
+.el-dropdown * {
+    outline: none;
+}
+
+//重写右键菜单样式
+.mx-context-menu {
+    padding: 0px !important;
+    border-radius: 2px !important;
+
+    .mx-context-menu-item {
+        cursor: pointer;
+        padding: 10px;
+        width: 150px;
+    }
+}
