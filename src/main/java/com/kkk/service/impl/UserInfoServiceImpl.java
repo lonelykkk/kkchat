@@ -22,6 +22,7 @@ import com.kkk.service.UserContactService;
 import com.kkk.service.UserInfoService;
 import com.kkk.utils.CopyTools;
 import com.kkk.utils.StringTools;
+import com.kkk.websocket.MessageHandler;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -56,6 +57,9 @@ public class UserInfoServiceImpl implements UserInfoService {
     private UserContactService userContactService;
     @Resource
     private ChatSessionUserService chatSessionUserService;
+    @Resource
+    private MessageHandler messageHandler;
+
     /*@Resource
     private GroupInfoMapper<GroupInfo, GroupInfoQuery> groupInfoMapper;
 
@@ -243,7 +247,7 @@ public class UserInfoServiceImpl implements UserInfoService {
         if (UserStatusEnum.DISABLE.getStatus().equals(userInfo.getStatus())) {
             throw new BusinessException("账号已禁用");
         }
-        //TODO 获取联系人列表
+        // 获取联系人列表
         UserContactQuery contactQuery = new UserContactQuery();
         contactQuery.setUserId(userInfo.getUserId());
         contactQuery.setStatus(UserContactStatusEnum.FRIEND.getStatus());
@@ -255,7 +259,7 @@ public class UserInfoServiceImpl implements UserInfoService {
         }
 
 
-        //TODO 获取群组
+        // 获取群组
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(userInfo);
         final Long lastHeartBeat = redisComponent.getUserHeartBeat(userInfo.getUserId());
         if (lastHeartBeat != null) {
@@ -331,6 +335,11 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Override
     public void forceOffLine(String userId) {
-        //TODO 强制下线
+        // 强制下线
+        MessageSendDto sendDto = new MessageSendDto();
+        sendDto.setContactType(UserContactTypeEnum.USER.getType());
+        sendDto.setMessageType(MessageTypeEnum.FORCE_OFF_LINE.getType());
+        sendDto.setContactId(userId);
+        messageHandler.sendMessage(sendDto);
     }
 }

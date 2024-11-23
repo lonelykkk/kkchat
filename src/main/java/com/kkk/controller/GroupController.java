@@ -3,6 +3,7 @@ package com.kkk.controller;
 import com.kkk.annotation.GlobalInterceptor;
 import com.kkk.entity.dto.TokenUserInfoDto;
 import com.kkk.entity.enums.GroupStatusEnum;
+import com.kkk.entity.enums.MessageTypeEnum;
 import com.kkk.entity.enums.UserContactStatusEnum;
 import com.kkk.entity.po.GroupInfo;
 import com.kkk.entity.po.UserContact;
@@ -117,4 +118,54 @@ public class GroupController extends ABaseController {
         groupInfoVo.setUserContactList(userContactList);
         return getSuccessResponseVO(groupInfoVo);
     }
+
+    /**
+     * 退群
+     *
+     * @param request
+     * @param groupId
+     * @return
+     */
+    @RequestMapping(value = "/leaveGroup")
+    @GlobalInterceptor
+    public ResponseVO leaveGroup(HttpServletRequest request, @NotEmpty String groupId) {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo(request);
+        groupInfoService.leaveGroup(tokenUserInfoDto.getUserId(), groupId, MessageTypeEnum.LEAVE_GROUP);
+        return getSuccessResponseVO(null);
+    }
+
+    /**
+     * 解散群
+     *
+     * @param request
+     * @param groupId
+     * @return
+     */
+    @RequestMapping(value = "/dissolutionGroup")
+    @GlobalInterceptor
+    public ResponseVO dissolutionGroup(HttpServletRequest request, @NotEmpty String groupId) {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo(request);
+        groupInfoService.dissolutionGroup(tokenUserInfoDto.getUserId(), groupId);
+        return getSuccessResponseVO(null);
+    }
+
+    /**
+     * 添加或者移除人员
+     *
+     * @param request
+     * @param groupId
+     * @param selectContacts
+     * @param opType
+     * @return
+     */
+    @RequestMapping(value = "/addOrRemoveGroupUser")
+    @GlobalInterceptor
+    public ResponseVO addOrRemoveGroupUser(HttpServletRequest request, @NotEmpty String groupId, @NotEmpty String selectContacts,
+                                           @NotNull Integer opType) {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo(request);
+        groupInfoService.addOrRemoveGroupUser(tokenUserInfoDto, groupId, selectContacts, opType);
+        return getSuccessResponseVO(null);
+    }
+
+
 }

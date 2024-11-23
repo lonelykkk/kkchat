@@ -1,5 +1,6 @@
 package com.kkk.websocket;
 
+import com.alibaba.fastjson.JSON;
 import com.kkk.entity.constants.Constants;
 import com.kkk.entity.dto.MessageSendDto;
 import com.kkk.entity.dto.WsInitData;
@@ -20,6 +21,8 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -27,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 
@@ -40,11 +44,21 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class ChannelContextUtils {
+    private static final Logger logger = LoggerFactory.getLogger(ChannelContextUtils.class);
 
-    private static final ConcurrentHashMap<String, Channel> USER_CONTEXT_MAP = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, ChannelGroup> GROUP_CONTEXT_MAP = new ConcurrentHashMap<>();
     @Resource
     private RedisComponent redisComponent;
+
+    public static final ConcurrentMap<String, Channel> USER_CONTEXT_MAP = new ConcurrentHashMap();
+
+    public static final ConcurrentMap<String, ChannelGroup> GROUP_CONTEXT_MAP = new ConcurrentHashMap();
+
+    @Resource
+    private ChatSessionUserMapper<ChatSessionUser, ChatSessionUserQuery> chatSessionUserMapper;
+
+    @Resource
+    private ChatMessageMapper<ChatMessage, ChatMessageQuery> chatMessageMapper;
+
     @Resource
     private UserInfoMapper<UserInfo, UserInfoQuery> userInfoMapper;
 
@@ -53,36 +67,30 @@ public class ChannelContextUtils {
 
     @Resource
     private UserContactApplyMapper<UserContactApply, UserContactApplyQuery> userContactApplyMapper;
-    @Resource
-    private ChatSessionUserMapper<ChatSessionUser, ChatSessionUserQuery> chatSessionUserMapper;
-    @Resource
-    private ChatMessageMapper<ChatMessage, ChatMessageQuery> chatMessageMapper;
-
 
     /**
-     * 这段代码执行后可以通过channelId获取用户id
-     * @param userId 用户id
-     * @param channel 当前连接的通道id
+     * 加入通道
+     *
+     * @param userId
+     * @param channel
      */
     public void addContext(String userId, Channel channel) {
         try {
             String channelId = channel.id().toString();
-            log.info("channelId->{}", channelId);
             AttributeKey attributeKey = null;
             if (!AttributeKey.exists(channelId)) {
-                attributeKey = AttributeKey.newInstance(channelId);
+                attributeKey = AttributeKey.newInstance(channel.id().toString());
             } else {
-                attributeKey = AttributeKey.valueOf(channelId);
+                attributeKey = AttributeKey.valueOf(channel.id().toString());
             }
             channel.attr(attributeKey).set(userId);
 
-            List<String> contactIdList = redisComponent.getUserContactList(userId);
-            for (String groupId : contactIdList) {
+            List<String> contactList = redisComponent.getUserContactList(userId);
+            for (String groupId : contactList) {
                 if (groupId.startsWith(UserContactTypeEnum.GROUP.getPrefix())) {
-                    add2Group(groupId,channel);
+                    add2Group(groupId, channel);
                 }
             }
-
             USER_CONTEXT_MAP.put(userId, channel);
             redisComponent.saveUserHeartBeat(userId);
 
@@ -91,15 +99,19 @@ public class ChannelContextUtils {
             updateInfo.setLastLoginTime(new Date());
             userInfoMapper.updateByUserId(updateInfo, userId);
 
-            //给用户发送消息
+            //给用户发送一些消息
+            //获取用户最后离线时间
             UserInfo userInfo = userInfoMapper.selectByUserId(userId);
             Long sourceLastOffTime = userInfo.getLastOffTime();
+            //这里避免毫秒时间差，所以减去1秒的时间
+            //如果时间太久，只取最近三天的消息数
             Long lastOffTime = sourceLastOffTime;
             if (sourceLastOffTime != null && System.currentTimeMillis() - Constants.MILLISECOND_3DAYS_AGO > sourceLastOffTime) {
                 lastOffTime = Constants.MILLISECOND_3DAYS_AGO;
             }
+
             /**
-             * 1.查询会话信息 查询用户所有的会话信息
+             * 1、查询会话信息 查询用户所有会话，避免换设备会话不同步
              */
             ChatSessionUserQuery sessionUserQuery = new ChatSessionUserQuery();
             sessionUserQuery.setUserId(userId);
@@ -109,8 +121,9 @@ public class ChannelContextUtils {
             wsInitData.setChatSessionList(chatSessionList);
 
             /**
-             * 2.查询聊天消息
+             * 2、查询聊天消息
              */
+            //查询用户的联系人
             UserContactQuery contactQuery = new UserContactQuery();
             contactQuery.setContactType(UserContactTypeEnum.GROUP.getType());
             contactQuery.setUserId(userId);
@@ -125,9 +138,8 @@ public class ChannelContextUtils {
             List<ChatMessage> chatMessageList = chatMessageMapper.selectList(messageQuery);
             wsInitData.setChatMessageList(chatMessageList);
 
-
             /**
-             * 3.查询好友申请
+             * 3、查询好友申请
              */
             UserContactApplyQuery applyQuery = new UserContactApplyQuery();
             applyQuery.setReceiveUserId(userId);
@@ -141,32 +153,18 @@ public class ChannelContextUtils {
             messageSendDto.setMessageType(MessageTypeEnum.INIT.getType());
             messageSendDto.setContactId(userId);
             messageSendDto.setExtendData(wsInitData);
+
             sendMsg(messageSendDto, userId);
         } catch (Exception e) {
-            log.error("初始化链接失败", e);
+            logger.error("初始化链接失败", e);
         }
-
     }
 
-
-    public void add2Group(String groupId, Channel channel) {
-        ChannelGroup group = GROUP_CONTEXT_MAP.get(groupId);
-        if (group == null) {
-            group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-            GROUP_CONTEXT_MAP.put(groupId, group);
-        }
-        if (channel == null) {
-            return;
-        }
-        group.add(channel);
-    }
-
-    /*public void send2Group(String message) {
-        ChannelGroup group = GROUP_CONTEXT_MAP.get("10000");
-        group.writeAndFlush(new TextWebSocketFrame(message));
-
-    }*/
-
+    /**
+     * 删除通道连接异常
+     *
+     * @param channel
+     */
     public void removeContext(Channel channel) {
         Attribute<String> attribute = channel.attr(AttributeKey.valueOf(channel.id().toString()));
         String userId = attribute.get();
@@ -181,40 +179,6 @@ public class ChannelContextUtils {
         userInfoMapper.updateByUserId(userInfo, userId);
     }
 
-    public void sendMessage(MessageSendDto messageSendDto) {
-        UserContactTypeEnum contactTypeEnum = UserContactTypeEnum.getByPrefix(messageSendDto.getContactId());
-        switch (contactTypeEnum) {
-            case USER:
-                send2User(messageSendDto);
-                break;
-            case GROUP:
-                sendMsg2Group(messageSendDto);
-        }
-    }
-
-
-    //发送消息给用户
-    public void send2User(MessageSendDto messageSendDto) {
-        String contactId = messageSendDto.getContactId();
-        sendMsg(messageSendDto, contactId);
-        //强制下线
-        if (MessageTypeEnum.FORCE_OFF_LINE.getType().equals(messageSendDto.getMessageType())) {
-            closeContext(contactId);
-        }
-    }
-    //发送消息给群组
-    public void sendMsg2Group(MessageSendDto messageSendDto) {
-        String contactId = messageSendDto.getContactId();
-        if (!StringTools.isEmpty(contactId)) {
-            return;
-        }
-        ChannelGroup channelGroup = GROUP_CONTEXT_MAP.get(messageSendDto.getContactId());
-        if (channelGroup == null) {
-            return;
-        }
-        channelGroup.writeAndFlush(new TextWebSocketFrame(JsonUtils.convertObj2Json(messageSendDto)));
-    }
-
     public void closeContext(String userId) {
         if (StringTools.isEmpty(userId)) {
             return;
@@ -227,12 +191,67 @@ public class ChannelContextUtils {
         }
     }
 
-    //发送消息
-    public static void sendMsg(MessageSendDto messageSendDto, String receiveId) {
-        if (receiveId == null) {
+    public void sendMessage(MessageSendDto messageSendDto) {
+        UserContactTypeEnum contactTypeEnum = UserContactTypeEnum.getByPrefix(messageSendDto.getContactId());
+        switch (contactTypeEnum) {
+            case USER:
+                send2User(messageSendDto);
+                break;
+            case GROUP:
+                sendMsg2Group(messageSendDto);
+        }
+    }
+
+    /**
+     * 发送消息给用户
+     */
+    private void send2User(MessageSendDto messageSendDto) {
+        String contactId = messageSendDto.getContactId();
+        sendMsg(messageSendDto, contactId);
+        //强制下线
+        if (MessageTypeEnum.FORCE_OFF_LINE.getType().equals(messageSendDto.getMessageType())) {
+            closeContext(contactId);
+        }
+    }
+
+    /**
+     * 发送消息到组
+     */
+    private void sendMsg2Group(MessageSendDto messageSendDto) {
+        if (messageSendDto.getContactId() == null) {
             return;
         }
-        Channel sendChannel = USER_CONTEXT_MAP.get(receiveId);
+
+        ChannelGroup group = GROUP_CONTEXT_MAP.get(messageSendDto.getContactId());
+        if (group == null) {
+            return;
+        }
+        group.writeAndFlush(new TextWebSocketFrame(JSON.toJSONString(messageSendDto)));
+
+        //移除群聊
+        MessageTypeEnum messageTypeEnum = MessageTypeEnum.getByType(messageSendDto.getMessageType());
+        if (MessageTypeEnum.LEAVE_GROUP == messageTypeEnum || MessageTypeEnum.REMOVE_GROUP == messageTypeEnum) {
+            String userId = (String) messageSendDto.getExtendData();
+            redisComponent.removeUserContact(userId, messageSendDto.getContactId());
+            Channel channel = USER_CONTEXT_MAP.get(userId);
+            if (channel == null) {
+                return;
+            }
+            group.remove(channel);
+        }
+
+        if (MessageTypeEnum.DISSOLUTION_GROUP == messageTypeEnum) {
+            GROUP_CONTEXT_MAP.remove(messageSendDto.getContactId());
+            group.close();
+        }
+    }
+
+
+    private static void sendMsg(MessageSendDto messageSendDto, String reciveId) {
+        if (reciveId == null) {
+            return;
+        }
+        Channel sendChannel = USER_CONTEXT_MAP.get(reciveId);
         if (sendChannel == null) {
             return;
         }
@@ -248,7 +267,18 @@ public class ChannelContextUtils {
             messageSendDto.setContactName(messageSendDto.getSendUserNickName());
         }
         sendChannel.writeAndFlush(new TextWebSocketFrame(JsonUtils.convertObj2Json(messageSendDto)));
+    }
 
+    private void add2Group(String groupId, Channel context) {
+        ChannelGroup group = GROUP_CONTEXT_MAP.get(groupId);
+        if (group == null) {
+            group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+            GROUP_CONTEXT_MAP.put(groupId, group);
+        }
+        if (context == null) {
+            return;
+        }
+        group.add(context);
     }
 
     public void addUser2Group(String userId, String groupId) {

@@ -8,6 +8,7 @@ import com.kkk.entity.vo.UserInfoVO;
 import com.kkk.service.UserInfoService;
 import com.kkk.utils.CopyTools;
 import com.kkk.utils.StringTools;
+import com.kkk.websocket.ChannelContextUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +28,8 @@ public class UserInfoController extends ABaseController {
 
     @Resource
     private UserInfoService userInfoService;
+    @Resource
+    private ChannelContextUtils channelContextUtils;
 
 
     @RequestMapping("/getUserInfo")
@@ -67,7 +70,8 @@ public class UserInfoController extends ABaseController {
     @RequestMapping("/logout")
     public ResponseVO logout(HttpServletRequest request) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfo(request);
-        //TODO 关闭ws
+        // 关闭ws
+        channelContextUtils.closeContext(tokenUserInfoDto.getUserId());
         return getSuccessResponseVO(null);
     }
 }
