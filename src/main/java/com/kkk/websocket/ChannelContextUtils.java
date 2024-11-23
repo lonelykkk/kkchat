@@ -247,6 +247,11 @@ public class ChannelContextUtils {
     }
 
 
+    /**
+     * 建立通道发送消息
+     * @param messageSendDto
+     * @param reciveId
+     */
     private static void sendMsg(MessageSendDto messageSendDto, String reciveId) {
         if (reciveId == null) {
             return;

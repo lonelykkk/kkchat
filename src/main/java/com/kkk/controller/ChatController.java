@@ -50,6 +50,17 @@ public class ChatController extends ABaseController {
     @Resource
     private AppConfig appConfig;
 
+    /**
+     * 发送消息
+     * @param request 请求
+     * @param contactId 联系人id
+     * @param messageContent
+     * @param messageType
+     * @param fileSize
+     * @param fileName
+     * @param fileType
+     * @return
+     */
     @RequestMapping("/sendMessage")
     @GlobalInterceptor
     public ResponseVO sendMessage(HttpServletRequest request,

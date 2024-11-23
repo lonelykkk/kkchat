@@ -170,10 +170,17 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     }
 
 
+    /**
+     * 保存消息进数据库
+     * @param chatMessage
+     * @param tokenUserInfoDto
+     * @return
+     */
     @Override
     public MessageSendDto saveMessage(ChatMessage chatMessage, TokenUserInfoDto tokenUserInfoDto) {
         //不是机器人回复，判断好友状态
         if (!Constants.ROBOT_UID.equals(tokenUserInfoDto.getUserId())) {
+            //获取联系人列表，查询当前发送消息的人是否为我的联系人
             List<String> contactList = redisComponent.getUserContactList(tokenUserInfoDto.getUserId());
             if (!contactList.contains(chatMessage.getContactId())) {
                 UserContactTypeEnum userContactTypeEnum = UserContactTypeEnum.getByPrefix(chatMessage.getContactId());
@@ -188,12 +195,15 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         String sendUserId = tokenUserInfoDto.getUserId();
         String contactId = chatMessage.getContactId();
         Long curTime = System.currentTimeMillis();
+        //获取联系人类型（群聊/个人）
         UserContactTypeEnum contactTypeEnum = UserContactTypeEnum.getByPrefix(contactId);
         MessageTypeEnum messageTypeEnum = MessageTypeEnum.getByType(chatMessage.getMessageType());
+        //存入为最后一条发送的消息
         String lastMessage = chatMessage.getMessageContent();
         String messageContent = StringTools.resetMessageContent(chatMessage.getMessageContent());
         chatMessage.setMessageContent(messageContent);
         Integer status = MessageTypeEnum.MEDIA_CHAT == messageTypeEnum ? MessageStatusEnum.SENDING.getStatus() : MessageStatusEnum.SENDED.getStatus();
+        //根据消息类型生成会话id
         if (ArraysUtil.contains(new Integer[]{
                 MessageTypeEnum.CHAT.getType(),
                 MessageTypeEnum.GROUP_CREATE.getType(),
@@ -226,16 +236,18 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         }
         MessageSendDto messageSend = CopyTools.copy(chatMessage, MessageSendDto.class);
         if (Constants.ROBOT_UID.equals(contactId)) {
+            //如果是机器人的话，应当是系统立即作出回答，直接存入数据库即可，无需建立通道连接
             SysSettingDto sysSettingDto = redisComponent.getSysSetting();
             TokenUserInfoDto robot = new TokenUserInfoDto();
             robot.setUserId(sysSettingDto.getRobotUid());
             robot.setNickName(sysSettingDto.getRobotNickName());
             ChatMessage robotChatMessage = new ChatMessage();
             robotChatMessage.setContactId(sendUserId);
-            //这里可以对接Ai 根据输入的信息做出回答
+            //对接Ai 根据输入的信息做出回答
             String answer = remoteClient.getAiChat(chatMessage.getMessageContent());
             robotChatMessage.setMessageContent(answer);
             robotChatMessage.setMessageType(MessageTypeEnum.CHAT.getType());
+            //置换一下，即使机器人为发送人，我为联系人
             saveMessage(robotChatMessage, robot);
         } else {
             messageHandler.sendMessage(messageSend);
