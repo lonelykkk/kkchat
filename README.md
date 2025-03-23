@@ -72,7 +72,7 @@ springBoot + redis + mybatis-plus + websocket
 3. 点击“登录”按钮
 4. 登录成功后，进入主界面
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps21.jpg) 
+![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps21.jpg)  
 
 ## 3. 好友管理
 
