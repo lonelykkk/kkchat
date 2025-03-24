@@ -59,7 +59,8 @@ springBoot + redis + mybatis-plus + websocket
 3. 点击“注册”按钮。
 4. 系统会自动生成一个AI助手，并分配默认头像和默认消息。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps20.jpg) 
+![image](https://github.com/user-attachments/assets/31d646ea-7b77-41b2-86d7-31872f80850d)
+
 
 ​      (注册功能)
 
@@ -72,7 +73,7 @@ springBoot + redis + mybatis-plus + websocket
 3. 点击“登录”按钮
 4. 登录成功后，进入主界面
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps21.jpg)  
+![image](https://github.com/user-attachments/assets/787ba023-0ee4-4f3a-a1f3-568165fe60fd)
 
 ## 3. 好友管理
 
@@ -88,7 +89,7 @@ springBoot + redis + mybatis-plus + websocket
 4. 点击“添加”按钮，发送好友请求。
 5. 对方同意后，好友关系建立。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps22.jpg) 
+![image](https://github.com/user-attachments/assets/b5a9c9cf-cf57-4f02-b5b2-9ec8ade439ca)
 
  
 
@@ -104,7 +105,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	4. 确认删除后，好友关系解除。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps23.jpg) 
+![image](https://github.com/user-attachments/assets/1f649ece-bed1-4cee-8631-5dd716a27c22)
 
  
 
@@ -122,7 +123,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	4. 确认拉黑后，该好友将无法与你进行任何互动。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps24.jpg) 
+![image](https://github.com/user-attachments/assets/c70d6795-59c0-4518-ac2c-a9a1748f251e)
 
  
 
@@ -144,9 +145,9 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	4. 点击“创建”按钮，群组创建成功。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps25.jpg) 
+![image](https://github.com/user-attachments/assets/0880fc99-e843-4f6f-bb92-260d5afd82ca)
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps26.jpg) 
+![image](https://github.com/user-attachments/assets/0b7e0fcd-4028-4a4a-98dd-28aaa043004b)
 
  
 
@@ -164,9 +165,9 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	4. 审核通过后，成功加入群组。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps27.jpg) 
+![image](https://github.com/user-attachments/assets/d7fae97b-614f-45db-b63d-ebbcd3d86bea)
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps28.jpg) 
+![image](https://github.com/user-attachments/assets/b5069f09-245d-4f35-9455-9fd0db0b0b40)
 
 ###  4.3 退出群组
 
@@ -182,7 +183,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	4. 确认退出后，退出群组。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps29.jpg) 
+![image](https://github.com/user-attachments/assets/c11824be-be91-4cfa-bf7a-9e56c1464307)
 
 ###  4.4 群组消息发送
 
@@ -198,7 +199,7 @@ springBoot + redis + mybatis-plus + websocket
 
  
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps30.jpg) 
+![image](https://github.com/user-attachments/assets/1334e4ab-ec82-4336-9301-a8f1ee7af1d8)
 
  
 
@@ -220,7 +221,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	4. 对方可以实时接收并查看消息。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps31.jpg) 
+![image](https://github.com/user-attachments/assets/47a92cb0-8a39-4d73-b9fc-f53ce9318137)
 
 ###  5.2 群聊消息
 
@@ -236,7 +237,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	4. 群组成员可以实时接收并查看消息。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps32.jpg) 
+![image](https://github.com/user-attachments/assets/377c5fd0-7710-4645-aec5-2f7f10eb1ef0)
 
 ###  5.3 消息文件下载路径设置\
 
@@ -256,7 +257,7 @@ springBoot + redis + mybatis-plus + websocket
 
  
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps33.jpg) 
+![image](https://github.com/user-attachments/assets/fbc8812b-68e7-4da7-a5ea-30e98a7546bf)
 
 ##  6. AI助手
 
@@ -268,7 +269,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	 可以自动回复消息，对用户问题进行讲解
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps34.jpg) 
+![image](https://github.com/user-attachments/assets/43f86116-c4ce-48c3-a615-8ad1fa258a24)
 
 ###  6.2 AI助手默认设置
 
@@ -284,7 +285,7 @@ springBoot + redis + mybatis-plus + websocket
 
  
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps35.jpg) 
+![image](https://github.com/user-attachments/assets/d6c13588-b130-4bdf-b05a-68dddb3aa3b7)
 
  
 
@@ -304,7 +305,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	 修改用户信息。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps36.jpg) 
+![image](https://github.com/user-attachments/assets/7526cfa7-c3a0-4f14-be4a-c66dde1c8d9a)
 
 ###  7.2 群组管理
 
@@ -316,7 +317,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	 修改群组信息。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps37.jpg) 
+![image](https://github.com/user-attachments/assets/f03a9bc8-bb89-4c4e-9f9d-90b0f6a60b87)
 
 ###  7.3 系统设置
 
@@ -328,7 +329,7 @@ springBoot + redis + mybatis-plus + websocket
 
 ​	 AI助手默认消息。
 
-![img](file:///C:\Users\喻凯\AppData\Local\Temp\ksohtml10924\wps38.jpg) 
+![image](https://github.com/user-attachments/assets/ac82d8b0-6cb8-4755-b160-f728762dada2)
 
  
 
